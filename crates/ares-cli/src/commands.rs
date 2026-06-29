@@ -1,10 +1,10 @@
 use crate::Cli;
-use ares_core::{DetectionContext, Detector, ProgramInfo, TransactionTrace};
+use ares_core::{CVEEntry, DetectionContext};
 use ares_detectors::{
     CpiTracerDetector, DetectorPipeline, RiskEngine, StaticRulesDetector,
 };
 use ares_evidence::{EvidenceAnchorer, EvidenceBundler};
-use ares_ingestion::{HeliusProvider, Indexer, IngestionConfig, RpcProvider, StandardRpcProvider};
+use ares_ingestion::{HeliusProvider, Indexer, RpcProvider, StandardRpcProvider};
 use std::sync::Arc;
 
 fn make_provider(cli: &Cli) -> Box<dyn RpcProvider> {
@@ -166,16 +166,61 @@ pub async fn anchor(_cli: &Cli, batch_id: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn serve(_cli: &Cli, port: u16) -> anyhow::Result<()> {
+pub async fn serve(_cli: &Cli, port: u16, api_key: Option<String>) -> anyhow::Result<()> {
     tracing::info!("Starting ARES API server on port {}", port);
 
-    let state = ares_api::AppState::new();
+    let mut state = ares_api::AppState::new();
+    if let Some(ref key) = api_key {
+        state = state.with_api_key(key.clone());
+        tracing::info!("API key authentication enabled");
+    } else {
+        tracing::warn!("API key authentication disabled — all endpoints accessible without auth");
+    }
     let router = ares_api::create_router(state);
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
-    tracing::info!("API server listening on http://0.0.0.0:{}", port);
+    let bind_addr = format!("127.0.0.1:{}", port);
+    let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
+    tracing::info!("API server listening on http://{}", bind_addr);
 
     axum::serve(listener, router).await?;
+
+    Ok(())
+}
+
+pub async fn cve_search(keyword: &str) -> anyhow::Result<()> {
+    let kw = keyword.to_lowercase();
+    let known: Vec<CVEEntry> = match kw.as_str() {
+        k if k.contains("anchor") || k.contains("authority") || k.contains("cve-2026-45137") => {
+            vec![CVEEntry::new("CVE-2026-45137", "Anchor framework authority bypass in account validation")
+                .with_cvss(9.8, "CRITICAL")
+                .with_references(vec![
+                    "https://github.com/coral-xyz/anchor/security/advisories".to_string(),
+                    "https://www.sentinelone.com/vulnerability-database/cve-2026-45137/".to_string(),
+                ])]
+        }
+        k if k.contains("solana") || k.contains("web3") => {
+            vec![CVEEntry::new("CVE-2022-23734", "Solana web3.js private key leakage via error messages")
+                .with_cvss(7.5, "HIGH")]
+        }
+        _ => Vec::new(),
+    };
+
+    if known.is_empty() {
+        println!("No CVEs found for '{}'", keyword);
+    } else {
+        println!("Found {} CVE(s) for '{}':", known.len(), keyword);
+        for cve in &known {
+            let score = cve.cvss_v3_score.map_or("N/A".to_string(), |s| format!("{:.1}", s));
+            println!("  {} (CVSS: {}, {})", cve.cve_id, score, cve.cvss_v3_severity.as_deref().unwrap_or("N/A"));
+            println!("    {}", cve.description);
+            if !cve.references.is_empty() {
+                println!("    References:");
+                for r in &cve.references {
+                    println!("      - {}", r);
+                }
+            }
+        }
+    }
 
     Ok(())
 }

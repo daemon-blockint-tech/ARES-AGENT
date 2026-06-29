@@ -1,4 +1,4 @@
-use crate::{IngestionConfig, RpcProvider};
+use crate::RpcProvider;
 use ares_core::{AresError, AresResult, ProgramInfo};
 use sled::Db;
 use std::path::Path;

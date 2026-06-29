@@ -16,6 +16,11 @@ pub mod evidence_registry {
         let registry = &mut ctx.accounts.evidence_registry;
 
         if registry.is_initialized {
+            // Verify authority before updating
+            require!(
+                registry.authority == ctx.accounts.authority.key(),
+                EvidenceRegistryError::Unauthorized
+            );
             // Update existing registry
             registry.evidence_root = evidence_root;
             registry.finding_count = finding_count;
@@ -120,7 +125,8 @@ pub struct VerifyEvidence<'info> {
     )]
     pub evidence_registry: Account<'info, EvidenceRegistryData>,
 
-    pub authority: UncheckedAccount<'info>,
+    #[account(signer)]
+    pub authority: Signer<'info>,
 }
 
 #[account]

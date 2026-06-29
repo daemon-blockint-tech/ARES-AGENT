@@ -1,5 +1,4 @@
-use ares_core::{Detector, DetectionContext, DetectorMetadata, Finding};
-use async_trait::async_trait;
+use ares_core::{Detector, DetectionContext, Finding};
 use std::sync::Arc;
 
 pub struct DetectorPipeline {

@@ -1,0 +1,19 @@
+[project]
+name = "ares-cve"
+version = "0.1.0"
+description = "CVE enrichment layer for ARES: offline CVE lookup via CVEdb for Solana audit findings"
+requires-python = ">=3.11"
+dependencies = [
+    "cvedb>=0.1.0",
+    "rich>=13.0",
+]
+
+[project.scripts]
+ares-cve = "ares_cve.cli:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]

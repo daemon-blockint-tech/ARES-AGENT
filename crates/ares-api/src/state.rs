@@ -11,6 +11,7 @@ pub struct AppState {
     pub risk_engine: RiskEngine,
     pub webhooks: Arc<RwLock<Vec<WebhookConfig>>>,
     pub db: Option<Arc<Db>>,
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -29,7 +30,13 @@ impl AppState {
             risk_engine: RiskEngine::default(),
             webhooks: Arc::new(RwLock::new(Vec::new())),
             db: None,
+            api_key: None,
         }
+    }
+
+    pub fn with_api_key(mut self, key: String) -> Self {
+        self.api_key = Some(key);
+        self
     }
 
     pub async fn add_findings(&self, new_findings: Vec<Finding>) {

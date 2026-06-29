@@ -1,4 +1,4 @@
-use crate::Finding;
+use crate::{AresError, AresResult, Finding};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -45,16 +45,16 @@ pub struct EvidenceBundle {
 }
 
 impl EvidenceBundle {
-    pub fn new(batch_id: &str, evidence: Vec<Evidence>) -> Self {
+    pub fn new(batch_id: &str, evidence: Vec<Evidence>) -> AresResult<Self> {
         let leaves: Vec<Vec<u8>> = evidence
             .iter()
-            .map(|e| hex::decode(&e.merkle_leaf).unwrap_or_default())
-            .collect();
+            .map(|e| hex::decode(&e.merkle_leaf).map_err(|e| AresError::Evidence(format!("Invalid merkle leaf hex: {}", e))))
+            .collect::<Result<_, _>>()?;
         let tree = MerkleTree::new(&leaves);
         let root = hex::encode(tree.root());
         let finding_ids: Vec<String> = evidence.iter().map(|e| e.finding_id.clone()).collect();
 
-        Self {
+        let bundle = Self {
             batch_id: batch_id.to_string(),
             findings: finding_ids,
             evidence,
@@ -62,7 +62,9 @@ impl EvidenceBundle {
             created_at: chrono::Utc::now(),
             anchored: false,
             anchor_tx: None,
-        }
+        };
+
+        Ok(bundle)
     }
 }
 
@@ -99,7 +101,7 @@ impl MerkleTree {
                 nodes.push(hash_pair(left, right));
             }
             level_start = next_start;
-            level_len = (level_len + 1) / 2;
+            level_len = level_len.div_ceil(2);
         }
 
         Self {
@@ -127,7 +129,7 @@ impl MerkleTree {
         let mut level_len = self.leaf_count;
 
         while level_len > 1 {
-            let sibling_idx = if idx % 2 == 0 {
+            let sibling_idx = if idx.is_multiple_of(2) {
                 if idx + 1 < level_len {
                     Some(idx + 1)
                 } else {
@@ -138,7 +140,7 @@ impl MerkleTree {
             };
 
             if let Some(sib) = sibling_idx {
-                let is_right = idx % 2 == 0;
+                let is_right = idx.is_multiple_of(2);
                 proof.push(MerkleProofStep {
                     hash: self.nodes[level_start + sib].clone(),
                     is_right,
@@ -146,7 +148,7 @@ impl MerkleTree {
             }
 
             level_start += level_len;
-            level_len = (level_len + 1) / 2;
+            level_len = level_len.div_ceil(2);
             idx /= 2;
         }
 
@@ -180,7 +182,7 @@ mod tests {
     #[test]
     fn test_single_leaf() {
         let leaf = vec![1u8; 32];
-        let tree = MerkleTree::new(&[leaf.clone()]);
+        let tree = MerkleTree::new(std::slice::from_ref(&leaf));
         assert_eq!(tree.root(), leaf.as_slice());
     }
 
@@ -189,7 +191,7 @@ mod tests {
         let l1 = vec![1u8; 32];
         let l2 = vec![2u8; 32];
         let tree = MerkleTree::new(&[l1, l2]);
-        let expected = hash_pair(&vec![1u8; 32], &vec![2u8; 32]);
+        let expected = hash_pair(&[1u8; 32], &[2u8; 32]);
         assert_eq!(tree.root(), expected.as_slice());
     }
 

@@ -2,6 +2,7 @@ use ares_core::{AresError, AresResult, ProgramInfo};
 use async_trait::async_trait;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountInfo {
@@ -16,7 +17,7 @@ pub struct AccountInfo {
 pub trait RpcProvider: Send + Sync {
     async fn get_account_info(&self, address: &str) -> AresResult<Option<AccountInfo>>;
     async fn get_program_accounts(&self, program_id: &str) -> AresResult<Vec<(String, AccountInfo)>>;
-    async def get_signatures_for_address(&self, address: &str, limit: usize) -> AresResult<Vec<TransactionSignature>>;
+    async fn get_signatures_for_address(&self, address: &str, limit: usize) -> AresResult<Vec<TransactionSignature>>;
     async fn download_program(&self, program_id: &str) -> AresResult<ProgramInfo>;
     async fn subscribe_program(&self, program_id: &str) -> AresResult<()>;
 }
@@ -30,9 +31,11 @@ pub struct TransactionSignature {
 }
 
 pub struct HeliusProvider {
+    #[allow(dead_code)]
     api_key: String,
-    rpc_url: String,
+    #[allow(dead_code)]
     ws_url: String,
+    base_rpc_url: String,
     client: reqwest::Client,
 }
 
@@ -40,19 +43,35 @@ impl HeliusProvider {
     pub fn new(api_key: &str) -> Self {
         Self {
             api_key: api_key.to_string(),
-            rpc_url: format!("https://mainnet.helius-rpc.com/?api-key={}", api_key),
-            ws_url: format!("wss://mainnet.helius-rpc.com/?api-key={}", api_key),
-            client: reqwest::Client::new(),
+            base_rpc_url: "https://mainnet.helius-rpc.com".to_string(),
+            ws_url: "wss://mainnet.helius-rpc.com".to_string(),
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
         }
     }
 
     pub fn with_custom_urls(api_key: &str, rpc_url: &str, ws_url: &str) -> Self {
         Self {
             api_key: api_key.to_string(),
-            rpc_url: rpc_url.to_string(),
+            base_rpc_url: rpc_url.to_string(),
             ws_url: ws_url.to_string(),
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
         }
+    }
+
+    /// Returns the full RPC URL with API key appended
+    fn effective_rpc_url(&self) -> String {
+        format!("{}?api-key={}", self.base_rpc_url, self.api_key)
+    }
+
+    /// Returns a redacted URL safe for logging (API key replaced with ***)
+    pub fn display_url(&self) -> String {
+        self.base_rpc_url.replace(&self.api_key, "***")
     }
 
     async fn rpc_request<T: serde::de::DeserializeOwned>(
@@ -69,7 +88,7 @@ impl HeliusProvider {
 
         let resp = self
             .client
-            .post(&self.rpc_url)
+            .post(self.effective_rpc_url())
             .json(&body)
             .send()
             .await
@@ -84,11 +103,12 @@ impl HeliusProvider {
             return Err(AresError::Rpc(error.to_string()));
         }
 
-        result
+        let result_value = result
             .get("result")
             .ok_or_else(|| AresError::Rpc("missing result field".to_string()))?
-            .clone()
-            .deserialize()
+            .clone();
+
+        serde_json::from_value(result_value)
             .map_err(|e| AresError::Rpc(e.to_string()))
     }
 }
@@ -99,11 +119,10 @@ impl RpcProvider for HeliusProvider {
         let params = serde_json::json!([address, { "encoding": "base64" }]);
         let result: serde_json::Value = self.rpc_request("getAccountInfo", params).await?;
 
-        if result.as_array().is_none_or(|a| a.is_empty()) {
-            return Ok(None);
-        }
-
-        let arr = result.as_array().unwrap();
+        let arr = match result.as_array() {
+            Some(a) if !a.is_empty() => a,
+            _ => return Ok(None),
+        };
         if arr[0].is_null() {
             return Ok(None);
         }
@@ -145,8 +164,7 @@ impl RpcProvider for HeliusProvider {
         let params = serde_json::json!([program_id, { "encoding": "base64" }]);
         let result: Vec<serde_json::Value> = self
             .rpc_request("getProgramAccounts", params)
-            .await
-            .unwrap_or_default();
+            .await?;
 
         let accounts = result
             .into_iter()
@@ -197,8 +215,7 @@ impl RpcProvider for HeliusProvider {
         let params = serde_json::json!([address, { "limit": limit }]);
         let result: Vec<serde_json::Value> = self
             .rpc_request("getSignaturesForAddress", params)
-            .await
-            .unwrap_or_default();
+            .await?;
 
         let sigs = result
             .into_iter()
@@ -235,8 +252,9 @@ impl RpcProvider for HeliusProvider {
                     .map(|d| {
                         base64::engine::general_purpose::STANDARD
                             .decode(d.as_bytes())
-                            .unwrap_or_default()
+                            .map_err(|e| AresError::Ingestion(format!("Base64 decode failed: {}", e)))
                     })
+                    .transpose()?
                     .unwrap_or_default();
 
                 Ok(ProgramInfo::new(program_id, bytecode))
@@ -264,7 +282,10 @@ impl StandardRpcProvider {
     pub fn new(rpc_url: &str) -> Self {
         Self {
             rpc_url: rpc_url.to_string(),
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
         }
     }
 }
@@ -292,15 +313,14 @@ impl RpcProvider for StandardRpcProvider {
             .await
             .map_err(|e| AresError::Rpc(e.to_string()))?;
 
-        let value = result
+        let value = match result
             .get("result")
-            .get("value");
+            .and_then(|r| r.get("value"))
+        {
+            Some(v) if !v.is_null() => v,
+            _ => return Ok(None),
+        };
 
-        if value.is_null() || value.is_none() {
-            return Ok(None);
-        }
-
-        let value = value.unwrap();
         let data = value
             .get("data")
             .and_then(|d| d.as_array())
@@ -331,7 +351,12 @@ impl RpcProvider for StandardRpcProvider {
             Some(acc) if acc.executable => {
                 let bytecode = acc.data
                     .as_ref()
-                    .map(|d| base64::engine::general_purpose::STANDARD.decode(d.as_bytes()).unwrap_or_default())
+                    .map(|d| {
+                        base64::engine::general_purpose::STANDARD
+                            .decode(d.as_bytes())
+                            .map_err(|e| AresError::Ingestion(format!("Base64 decode failed: {}", e)))
+                    })
+                    .transpose()?
                     .unwrap_or_default();
                 Ok(ProgramInfo::new(program_id, bytecode))
             }

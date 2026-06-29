@@ -2,7 +2,6 @@ use ares_core::{
     Detector, DetectionContext, DetectorMetadata, Finding, Severity, VulnerabilityClass,
 };
 use async_trait::async_trait;
-use std::collections::{HashMap, HashSet};
 
 /// CPI Graph Tracer: extracts and verifies CPI interaction graphs,
 /// detects missing validation patterns in cross-program invocations.
@@ -13,6 +12,7 @@ struct CpiEdge {
     from_program: String,
     to_program: String,
     accounts_passed: Vec<String>,
+    #[allow(dead_code)]
     signers_passed: Vec<bool>,
     has_program_id_check: bool,
     has_owner_check: bool,
@@ -145,35 +145,32 @@ impl CpiTracerDetector {
         }
 
         // Compute CPI risk score
-        let total_edges = edges.len();
-        let unverified_edges = edges.iter().filter(|e| !e.has_program_id_check).count();
-        if total_edges > 0 {
-            let risk_ratio = unverified_edges as f64 / total_edges as f64;
-            if risk_ratio > 0.5 {
-                findings.push(
-                    Finding::new(
-                        "unknown",
-                        "cpi_tracer",
-                        "High CPI risk score: majority of CPI edges unverified",
-                        &format!(
-                            "{}/{} CPI edges lack program_id verification ({:.0}%). \
-                             This program has elevated CPI risk.",
-                            unverified_edges,
-                            total_edges,
-                            risk_ratio * 100.0
-                        ),
-                        Severity::High,
-                        VulnerabilityClass::C2,
+        let risk = Self::compute_cpi_risk(edges);
+        if risk > 0.5 {
+            let unverified_edges = edges.iter().filter(|e| !e.has_program_id_check).count();
+            findings.push(
+                Finding::new(
+                    "unknown",
+                    "cpi_tracer",
+                    "High CPI risk score: majority of CPI edges unverified",
+                    &format!(
+                        "{}/{} CPI edges lack program_id verification ({:.0}%). \
+                         This program has elevated CPI risk.",
+                        unverified_edges,
+                        edges.len(),
+                        risk * 100.0
                     ),
-                );
-            }
+                    Severity::High,
+                    VulnerabilityClass::C2,
+                ),
+            );
         }
 
         findings
     }
 
     /// Compute a CPI risk score (0.0 to 1.0) for a program
-    pub fn compute_cpi_risk(edges: &[CpiEdge]) -> f64 {
+    fn compute_cpi_risk(edges: &[CpiEdge]) -> f64 {
         if edges.is_empty() {
             return 0.0;
         }

@@ -1,12 +1,20 @@
 use ares_core::{Finding, Severity};
 use crate::state::WebhookConfig;
+use std::time::Duration;
 
 /// Dispatch webhook notifications for new findings
 pub async fn dispatch_webhooks(
     webhooks: &[WebhookConfig],
     finding: &Finding,
 ) {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap_or_else(|e| {
+            tracing::warn!("Failed to build hardened webhook client ({}), falling back to default", e);
+            reqwest::Client::new()
+        });
 
     for hook in webhooks {
         // Check severity filter

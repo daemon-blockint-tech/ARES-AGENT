@@ -34,7 +34,7 @@ impl EvidenceBundler {
         }
 
         let evidence: Vec<Evidence> = self.pending.drain().map(|(_, v)| v).collect();
-        let bundle = EvidenceBundle::new(batch_id, evidence);
+        let bundle = EvidenceBundle::new(batch_id, evidence).ok()?;
 
         tracing::info!(
             "Finalized evidence bundle {} with {} findings, merkle_root={}",

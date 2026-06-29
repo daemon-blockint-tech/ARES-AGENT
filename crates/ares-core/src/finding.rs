@@ -71,6 +71,11 @@ impl Finding {
         self
     }
 
+    pub fn with_cve_refs(mut self, refs: Vec<String>) -> Self {
+        self.cve_refs = refs;
+        self
+    }
+
     pub fn merkle_leaf(&self) -> Vec<u8> {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();

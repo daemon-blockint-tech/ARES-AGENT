@@ -136,8 +136,9 @@ class FamilyClusterer:
                         members.append(peer.program_id)
                         assigned.add(peer.program_id)
 
-            # Create family
-            family_id = f"family_{hash(members[0]) & 0xFFFFFFFF:08x}"
+            # Create family with deterministic ID
+            family_hash = hashlib.sha256(members[0].encode()).hexdigest()[:8]
+            family_id = f"family_{family_hash}"
             families[family_id] = ProgramFamily(
                 family_id=family_id,
                 template_id=emb.program_id,

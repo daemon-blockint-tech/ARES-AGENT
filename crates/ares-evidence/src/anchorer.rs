@@ -3,7 +3,6 @@ use solana_sdk::{
     instruction::Instruction,
     pubkey::Pubkey,
     signature::{Keypair, Signer},
-    transaction::Transaction,
 };
 use std::str::FromStr;
 
@@ -12,6 +11,7 @@ use std::str::FromStr;
 pub struct EvidenceAnchorer {
     program_id: Pubkey,
     payer: Option<Keypair>,
+    #[allow(dead_code)]
     rpc_url: String,
 }
 
@@ -72,7 +72,7 @@ impl EvidenceAnchorer {
 
     /// Anchor an evidence bundle on-chain
     pub async fn anchor(&self, bundle: &mut EvidenceBundle) -> AresResult<String> {
-        let payer = self
+        let _payer = self
             .payer
             .as_ref()
             .ok_or_else(|| AresError::Anchoring("No payer keypair set".to_string()))?;
@@ -91,7 +91,7 @@ impl EvidenceAnchorer {
         let timestamp = bundle.created_at.timestamp();
         let finding_count = bundle.findings.len() as u32;
 
-        let ix = self.build_anchor_instruction(evidence_root, finding_count, timestamp)?;
+        let _ix = self.build_anchor_instruction(evidence_root, finding_count, timestamp)?;
 
         tracing::info!(
             "Anchoring bundle {} with {} findings, root={}",

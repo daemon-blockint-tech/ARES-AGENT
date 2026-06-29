@@ -28,7 +28,7 @@ impl StaticRulesDetector {
             // Check if program has invoke instructions but lacks owner verification
             let has_invoke = bytecode
                 .windows(8)
-                .any(|w| w == &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c]);
+                .any(|w| w == [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c]);
 
             if has_invoke {
                 let has_owner_check = bytecode.windows(4).any(|w| w == owner_check_pattern);
@@ -63,7 +63,7 @@ impl StaticRulesDetector {
             // Pattern: programs with privileged operations should check is_signer
             let has_privileged_op = bytecode.windows(4).any(|w| {
                 // Look for patterns suggesting admin/authority operations
-                w == &[0x61, 0x66, 0x0c, 0x00] // sol_log_64 / admin pattern
+                w == [0x61, 0x66, 0x0c, 0x00] // sol_log_64 / admin pattern
             });
 
             if has_privileged_op {
@@ -139,7 +139,7 @@ impl StaticRulesDetector {
         if bytecode.len() > 4 {
             let has_pda_ops = bytecode.windows(4).any(|w| {
                 // sol_create_program_address or sol_try_find_program_address
-                w == &[0x63, 0x00, 0x00, 0x00] || w == &[0x63, 0x01, 0x00, 0x00]
+                w == [0x63, 0x00, 0x00, 0x00] || w == [0x63, 0x01, 0x00, 0x00]
             });
 
             if has_pda_ops {

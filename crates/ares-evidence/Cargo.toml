@@ -8,7 +8,6 @@ license.workspace = true
 ares-core = { path = "../ares-core" }
 solana-sdk = { workspace = true }
 solana-client = { workspace = true }
-anchor-client = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
@@ -19,3 +18,4 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 hex = { workspace = true }
+chrono = { workspace = true }

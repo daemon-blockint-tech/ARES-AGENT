@@ -10,7 +10,10 @@ Target: find C1 (business logic) cases faster than coverage-only fuzzers.
 Literature shows 3-10x improvement in time-to-first-logic-bug.
 """
 
-from dataclasses import dataclass, field
+import random
+from dataclasses import dataclass
+
+import numpy as np
 
 
 @dataclass
@@ -48,8 +51,6 @@ class SemanticMutator:
         mutated = bytearray(input_data)
         if len(mutated) > 0:
             # Flip a random bit
-            import random
-
             pos = random.randint(0, len(mutated) - 1)
             mutated[pos] ^= 0x01
 
@@ -82,8 +83,6 @@ class NoveltyScorer:
             return 1.0
 
         # Simple cosine similarity to nearest neighbor
-        import numpy as np
-
         emb = np.array(embedding)
         best_sim = 0.0
         for hist in self.embeddings:

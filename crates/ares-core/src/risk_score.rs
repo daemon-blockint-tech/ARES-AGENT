@@ -12,11 +12,33 @@ pub struct RiskScore {
     pub computed_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// Weight configuration for risk score computation.
+/// Default weights derived from Solana ecosystem review data:
+/// - C1 (business logic) = 38.5% of high/critical findings
+/// - C2 (validation/access control) = 25.0%
+/// - C3 (low-level technical) = 19.0%
+#[derive(Debug, Clone, Copy)]
+pub struct RiskWeights {
+    pub w1: f64,
+    pub w2: f64,
+    pub w3: f64,
+    pub w4: f64,
+    pub w5: f64,
+}
+
+impl Default for RiskWeights {
+    fn default() -> Self {
+        Self {
+            w1: 0.385,
+            w2: 0.250,
+            w3: 0.190,
+            w4: 0.100,
+            w5: 0.075,
+        }
+    }
+}
+
 impl RiskScore {
-    /// Default weights derived from Solana ecosystem review data:
-    /// - C1 (business logic) = 38.5% of high/critical findings
-    /// - C2 (validation/access control) = 25.0%
-    /// - C3 (low-level technical) = 19.0%
     pub const DEFAULT_W1: f64 = 0.385;
     pub const DEFAULT_W2: f64 = 0.250;
     pub const DEFAULT_W3: f64 = 0.190;
@@ -37,11 +59,7 @@ impl RiskScore {
             c3_score,
             clone_family_factor,
             economic_exposure,
-            Self::DEFAULT_W1,
-            Self::DEFAULT_W2,
-            Self::DEFAULT_W3,
-            Self::DEFAULT_W4,
-            Self::DEFAULT_W5,
+            &RiskWeights::default(),
         );
 
         Self {
@@ -62,13 +80,13 @@ impl RiskScore {
         c3: f64,
         clone: f64,
         economic: f64,
-        w1: f64,
-        w2: f64,
-        w3: f64,
-        w4: f64,
-        w5: f64,
+        weights: &RiskWeights,
     ) -> f64 {
-        w1 * c1 + w2 * c2 + w3 * c3 + w4 * clone + w5 * economic
+        weights.w1 * c1
+            + weights.w2 * c2
+            + weights.w3 * c3
+            + weights.w4 * clone
+            + weights.w5 * economic
     }
 
     pub fn severity_label(&self) -> &'static str {
@@ -102,7 +120,7 @@ mod tests {
         let critical = RiskScore::new("test", 1.0, 1.0, 1.0, 1.0, 1.0);
         assert_eq!(critical.severity_label(), "critical");
 
-        let low = RiskScore::new("test", 0.1, 0.1, 0.1, 0.1, 0.1);
+        let low = RiskScore::new("test", 0.3, 0.3, 0.3, 0.3, 0.3);
         assert_eq!(low.severity_label(), "low");
     }
 }

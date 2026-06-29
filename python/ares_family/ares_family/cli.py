@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.table import Table
 
-from .clusterer import FamilyClusterer
+from .clusterer import FamilyClusterer, ProgramFamily
 from .risk_propagator import FamilyRiskPropagator
 
 console = Console()
@@ -57,8 +56,6 @@ def propagate(input: str, risk: float) -> None:
 
     data = json.loads(Path(input).read_text())
     for fam_data in data.get("families", []):
-        from .clusterer import ProgramFamily
-
         family = ProgramFamily(
             family_id=fam_data["family_id"],
             template_id=fam_data["template_id"],

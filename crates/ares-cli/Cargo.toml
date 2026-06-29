@@ -21,3 +21,6 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 bs58 = { workspace = true }
+axum = { workspace = true }
+ares-api = { path = "../ares-api" }
+chrono = { workspace = true }

@@ -2,7 +2,7 @@ mod commands;
 
 use clap::{Parser, Subcommand};
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[command(name = "ares", version, about = "ARES-AGENT: Multi-model Solana audit platform")]
 struct Cli {
     /// RPC URL (defaults to mainnet)
@@ -21,7 +21,7 @@ struct Cli {
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 enum Commands {
     /// Ingest a program from Solana
     Ingest {
@@ -62,6 +62,14 @@ enum Commands {
         /// Port to listen on
         #[arg(long, default_value = "8080")]
         port: u16,
+        /// API key for authentication (also via ARES_API_KEY env var)
+        #[arg(long, env = "ARES_API_KEY")]
+        api_key: Option<String>,
+    },
+    /// Search for CVEs by keyword (offline CVEdb)
+    Cve {
+        /// Keyword to search (e.g., 'anchor', 'solana', 'CVE-2026-45137')
+        keyword: String,
     },
 }
 
@@ -76,12 +84,12 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    match cli.command {
+    match &cli.command {
         Commands::Ingest { program_id } => {
-            commands::ingest(&cli, &program_id).await?;
+            commands::ingest(&cli, program_id).await?;
         }
         Commands::Scan { program_id } => {
-            commands::scan(&cli, &program_id).await?;
+            commands::scan(&cli, program_id).await?;
         }
         Commands::Programs => {
             commands::list_programs(&cli)?;
@@ -91,16 +99,19 @@ async fn main() -> anyhow::Result<()> {
             severity,
             class,
         } => {
-            commands::list_findings(&cli, program_id, severity, class).await?;
+            commands::list_findings(&cli, program_id.clone(), severity.clone(), class.clone()).await?;
         }
         Commands::Risk { program_id } => {
-            commands::get_risk(&cli, &program_id).await?;
+            commands::get_risk(&cli, program_id).await?;
         }
         Commands::Anchor { batch_id } => {
-            commands::anchor(&cli, &batch_id).await?;
+            commands::anchor(&cli, batch_id).await?;
         }
-        Commands::Serve { port } => {
-            commands::serve(&cli, port).await?;
+        Commands::Serve { port, api_key } => {
+            commands::serve(&cli, *port, api_key.clone()).await?;
+        }
+        Commands::Cve { keyword } => {
+            commands::cve_search(keyword).await?;
         }
     }
 

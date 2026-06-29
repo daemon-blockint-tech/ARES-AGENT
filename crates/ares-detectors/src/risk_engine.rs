@@ -1,4 +1,4 @@
-use ares_core::{Finding, RiskScore, Severity, VulnerabilityClass};
+use ares_core::{Finding, RiskScore, RiskWeights, Severity, VulnerabilityClass};
 use std::collections::HashMap;
 
 /// Risk scoring engine implementing the Daemon Protocol risk formula:
@@ -53,7 +53,7 @@ impl RiskEngine {
 
         let total = RiskScore::compute_total(
             c1, c2, c3, clone, economic,
-            self.w1, self.w2, self.w3, self.w4, self.w5,
+            &RiskWeights { w1: self.w1, w2: self.w2, w3: self.w3, w4: self.w4, w5: self.w5 },
         );
 
         RiskScore {

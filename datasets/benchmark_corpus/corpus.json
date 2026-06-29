@@ -1,0 +1,94 @@
+{
+  "entries": [
+    {
+      "program_id": "WormT3rkhg2gQmQy5Wf8xq1Q2Q3Q4Q5Q6Q7Q8Q9Q",
+      "title": "Forged instructions sysvar bypass",
+      "severity": "critical",
+      "vulnerability_class": "C2",
+      "description": "Wormhole bridge used forged sysvar account to bypass signature verification of transfer instructions. $320M loss.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker constructs a transaction with a forged sysvar account that passes the program's verification check, allowing unauthorized token transfers."
+    },
+    {
+      "program_id": "CshM1...11111111111111111111111111111111",
+      "title": "Missing account validation in collateral backing",
+      "severity": "critical",
+      "vulnerability_class": "C2",
+      "description": "Cashio failed to validate collateral accounts, allowing minting of unbacked CASH tokens. $52M loss.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker passes fake collateral accounts that are not validated for ownership or type, minting CASH without real backing."
+    },
+    {
+      "program_id": "Crem1...11111111111111111111111111111111",
+      "title": "Forged price tick account via CPI",
+      "severity": "critical",
+      "vulnerability_class": "C2",
+      "description": "Crema allowed attacker to report fake liquidity price via forged tick account in CPI call. $8.8M loss.",
+      "detector_id": "cpi_tracer",
+      "exploit_scenario": "Attacker constructs a fake tick account and passes it to the CPI call. Since program_id of the tick account is not verified, the fake account reports manipulated prices."
+    },
+    {
+      "program_id": "MngM1...11111111111111111111111111111111",
+      "title": "Price manipulation via oracle feed",
+      "severity": "critical",
+      "vulnerability_class": "C1",
+      "description": "Mango Markets exploited via price manipulation of oracle feeds, allowing attacker to drain liquidity. $114M loss.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker manipulates the oracle price feed by taking opposing positions, triggering liquidations at favorable prices."
+    },
+    {
+      "program_id": "Nirv1...11111111111111111111111111111111",
+      "title": "Economic exploit via bonding curve invariant",
+      "severity": "critical",
+      "vulnerability_class": "C1",
+      "description": "Nirvana Finance bonding curve exploited for risk-free profit due to invariant mismatch. $3.5M loss.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker exploits a mismatch between the bonding curve invariant and the reward calculation to extract risk-free profit."
+    },
+    {
+      "program_id": "Test1...11111111111111111111111111111111",
+      "title": "Missing signer check on admin withdrawal",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Admin withdrawal function does not verify is_signer, allowing anyone to call it.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker calls the admin withdrawal function without being a signer, draining program funds."
+    },
+    {
+      "program_id": "Test2...11111111111111111111111111111111",
+      "title": "Arbitrary CPI without program_id verification",
+      "severity": "critical",
+      "vulnerability_class": "C2",
+      "description": "Program invokes another program via CPI without verifying the target program_id.",
+      "detector_id": "cpi_tracer",
+      "exploit_scenario": "Attacker deploys a malicious program with the same interface. When the vulnerable program invokes CPI, the malicious program executes instead."
+    },
+    {
+      "program_id": "Test3...11111111111111111111111111111111",
+      "title": "PDA seed collision via manipulable input",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program derives PDA using user-controlled input as seed without validation, allowing PDA substitution.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker crafts input that produces a PDA colliding with a legitimate account, gaining access to its funds."
+    },
+    {
+      "program_id": "Test4...11111111111111111111111111111111",
+      "title": "Unchecked integer overflow in token amount",
+      "severity": "low",
+      "vulnerability_class": "C3",
+      "description": "Token transfer amount calculation uses unchecked arithmetic, potential overflow on large values.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker passes large values that cause overflow, resulting in small actual transfer while crediting large amount."
+    },
+    {
+      "program_id": "Test5...11111111111111111111111111111111",
+      "title": "Reentrancy via chained CPI state update",
+      "severity": "high",
+      "vulnerability_class": "C3",
+      "description": "Program updates state after CPI call, allowing callee to observe stale state and exploit it.",
+      "detector_id": "cpi_tracer",
+      "exploit_scenario": "Attacker's program is invoked via CPI, sees stale state, and exploits the inconsistency before the caller updates."
+    }
+  ]
+}
