@@ -93,6 +93,7 @@ pub struct AnchorFinding<'info> {
         mut,
         seeds = [b"evidence", authority.key().as_ref()],
         bump,
+        has_one = authority,
         space = 8 + 32 + 32 + 4 + 8 + 1 + 1,
         payer = authority,
     )]
@@ -110,6 +111,7 @@ pub struct UpdateFinding<'info> {
         mut,
         seeds = [b"evidence", authority.key().as_ref()],
         bump = evidence_registry.bump,
+        has_one = authority,
     )]
     pub evidence_registry: Account<'info, EvidenceRegistryData>,
 
@@ -122,6 +124,7 @@ pub struct VerifyEvidence<'info> {
     #[account(
         seeds = [b"evidence", authority.key().as_ref()],
         bump = evidence_registry.bump,
+        has_one = authority,
     )]
     pub evidence_registry: Account<'info, EvidenceRegistryData>,
 

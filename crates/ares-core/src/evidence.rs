@@ -111,7 +111,7 @@ impl MerkleTree {
     }
 
     pub fn root(&self) -> &[u8] {
-        self.nodes.last().expect("root exists")
+        self.nodes.last().map(|v| v.as_slice()).unwrap_or(&[])
     }
 
     pub fn leaf_count(&self) -> usize {
