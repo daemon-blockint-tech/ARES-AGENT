@@ -1,0 +1,59 @@
+[package]
+name = "ares-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+tokio = { version = "1.42", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+bs58 = "0.5"
+hex = "0.4"
+serde_json = "1.0"
+
+[dependencies.ares-core]
+path = ".."
+
+[dependencies.ares-detectors]
+path = "../../ares-detectors"
+
+[[bin]]
+name = "fuzz_merkle_tree"
+path = "fuzz_targets/fuzz_target_1.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_finding_merkle_leaf"
+path = "fuzz_targets/finding_merkle_leaf.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_evidence_bundle"
+path = "fuzz_targets/evidence_bundle.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_risk_engine"
+path = "fuzz_targets/risk_engine.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_static_rules_bytecode"
+path = "fuzz_targets/static_rules_bytecode.rs"
+test = false
+doc = false
+bench = false
