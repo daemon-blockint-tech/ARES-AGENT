@@ -1,4 +1,4 @@
-use ares_core::{Detector, DetectionContext, DetectorMetadata, Finding};
+use ares_core::{DetectionContext, Detector, DetectorMetadata, Finding};
 use async_trait::async_trait;
 
 /// Symbolic adapter detector — stub interface for SseRex integration.
@@ -11,9 +11,7 @@ pub struct SymbolicAdapterDetector {
 
 impl SymbolicAdapterDetector {
     pub fn new() -> Self {
-        Self {
-            sserex_path: None,
-        }
+        Self { sserex_path: None }
     }
 
     pub fn with_path(path: &str) -> Self {
@@ -39,7 +37,8 @@ impl Detector for SymbolicAdapterDetector {
             description: "Symbolic execution engine for Solana bytecode. \
                           Targets missing owner/signer/key checks, arbitrary CPIs. \
                           Models CPI depth limit and privilege rules. \
-                          Currently a stub — requires SseRex installation.".to_string(),
+                          Currently a stub — requires SseRex installation."
+                .to_string(),
             supported_classes: vec!["C2".to_string()],
         }
     }

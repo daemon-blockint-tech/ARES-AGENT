@@ -80,7 +80,11 @@ impl AppState {
         findings.iter().find(|f| f.id == id).cloned()
     }
 
-    pub async fn compute_and_store_risk(&self, program_id: &str, findings: &[Finding]) -> RiskScore {
+    pub async fn compute_and_store_risk(
+        &self,
+        program_id: &str,
+        findings: &[Finding],
+    ) -> RiskScore {
         let score = self.risk_engine.compute(program_id, findings, None, None);
         let mut scores = self.risk_scores.write().await;
         scores.insert(program_id.to_string(), score.clone());

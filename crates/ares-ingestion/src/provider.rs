@@ -16,8 +16,15 @@ pub struct AccountInfo {
 #[async_trait]
 pub trait RpcProvider: Send + Sync {
     async fn get_account_info(&self, address: &str) -> AresResult<Option<AccountInfo>>;
-    async fn get_program_accounts(&self, program_id: &str) -> AresResult<Vec<(String, AccountInfo)>>;
-    async fn get_signatures_for_address(&self, address: &str, limit: usize) -> AresResult<Vec<TransactionSignature>>;
+    async fn get_program_accounts(
+        &self,
+        program_id: &str,
+    ) -> AresResult<Vec<(String, AccountInfo)>>;
+    async fn get_signatures_for_address(
+        &self,
+        address: &str,
+        limit: usize,
+    ) -> AresResult<Vec<TransactionSignature>>;
     async fn download_program(&self, program_id: &str) -> AresResult<ProgramInfo>;
     async fn subscribe_program(&self, program_id: &str) -> AresResult<()>;
 }
@@ -108,8 +115,7 @@ impl HeliusProvider {
             .ok_or_else(|| AresError::Rpc("missing result field".to_string()))?
             .clone();
 
-        serde_json::from_value(result_value)
-            .map_err(|e| AresError::Rpc(e.to_string()))
+        serde_json::from_value(result_value).map_err(|e| AresError::Rpc(e.to_string()))
     }
 }
 
@@ -141,19 +147,13 @@ impl RpcProvider for HeliusProvider {
                 .and_then(|o| o.as_str())
                 .unwrap_or("")
                 .to_string(),
-            lamports: value
-                .get("lamports")
-                .and_then(|l| l.as_u64())
-                .unwrap_or(0),
+            lamports: value.get("lamports").and_then(|l| l.as_u64()).unwrap_or(0),
             data,
             executable: value
                 .get("executable")
                 .and_then(|e| e.as_bool())
                 .unwrap_or(false),
-            rent_epoch: value
-                .get("rentEpoch")
-                .and_then(|r| r.as_u64())
-                .unwrap_or(0),
+            rent_epoch: value.get("rentEpoch").and_then(|r| r.as_u64()).unwrap_or(0),
         }))
     }
 
@@ -162,9 +162,7 @@ impl RpcProvider for HeliusProvider {
         program_id: &str,
     ) -> AresResult<Vec<(String, AccountInfo)>> {
         let params = serde_json::json!([program_id, { "encoding": "base64" }]);
-        let result: Vec<serde_json::Value> = self
-            .rpc_request("getProgramAccounts", params)
-            .await?;
+        let result: Vec<serde_json::Value> = self.rpc_request("getProgramAccounts", params).await?;
 
         let accounts = result
             .into_iter()
@@ -213,9 +211,8 @@ impl RpcProvider for HeliusProvider {
         limit: usize,
     ) -> AresResult<Vec<TransactionSignature>> {
         let params = serde_json::json!([address, { "limit": limit }]);
-        let result: Vec<serde_json::Value> = self
-            .rpc_request("getSignaturesForAddress", params)
-            .await?;
+        let result: Vec<serde_json::Value> =
+            self.rpc_request("getSignaturesForAddress", params).await?;
 
         let sigs = result
             .into_iter()
@@ -225,16 +222,15 @@ impl RpcProvider for HeliusProvider {
                     .and_then(|s| s.as_str())
                     .unwrap_or("")
                     .to_string(),
-                slot: item
-                    .get("slot")
-                    .and_then(|s| s.as_u64())
-                    .unwrap_or(0),
-                err: item
-                    .get("err")
-                    .and_then(|e| if e.is_null() { None } else { Some(e.to_string()) }),
-                block_time: item
-                    .get("blockTime")
-                    .and_then(|b| b.as_i64()),
+                slot: item.get("slot").and_then(|s| s.as_u64()).unwrap_or(0),
+                err: item.get("err").and_then(|e| {
+                    if e.is_null() {
+                        None
+                    } else {
+                        Some(e.to_string())
+                    }
+                }),
+                block_time: item.get("blockTime").and_then(|b| b.as_i64()),
             })
             .collect();
 
@@ -252,7 +248,9 @@ impl RpcProvider for HeliusProvider {
                     .map(|d| {
                         base64::engine::general_purpose::STANDARD
                             .decode(d.as_bytes())
-                            .map_err(|e| AresError::Ingestion(format!("Base64 decode failed: {}", e)))
+                            .map_err(|e| {
+                                AresError::Ingestion(format!("Base64 decode failed: {}", e))
+                            })
                     })
                     .transpose()?
                     .unwrap_or_default();
@@ -313,10 +311,7 @@ impl RpcProvider for StandardRpcProvider {
             .await
             .map_err(|e| AresError::Rpc(e.to_string()))?;
 
-        let value = match result
-            .get("result")
-            .and_then(|r| r.get("value"))
-        {
+        let value = match result.get("result").and_then(|r| r.get("value")) {
             Some(v) if !v.is_null() => v,
             _ => return Ok(None),
         };
@@ -329,38 +324,62 @@ impl RpcProvider for StandardRpcProvider {
             .map(|s| s.to_string());
 
         Ok(Some(AccountInfo {
-            owner: value.get("owner").and_then(|o| o.as_str()).unwrap_or("").to_string(),
+            owner: value
+                .get("owner")
+                .and_then(|o| o.as_str())
+                .unwrap_or("")
+                .to_string(),
             lamports: value.get("lamports").and_then(|l| l.as_u64()).unwrap_or(0),
             data,
-            executable: value.get("executable").and_then(|e| e.as_bool()).unwrap_or(false),
+            executable: value
+                .get("executable")
+                .and_then(|e| e.as_bool())
+                .unwrap_or(false),
             rent_epoch: value.get("rentEpoch").and_then(|r| r.as_u64()).unwrap_or(0),
         }))
     }
 
-    async fn get_program_accounts(&self, _program_id: &str) -> AresResult<Vec<(String, AccountInfo)>> {
-        Err(AresError::Rpc("StandardRpcProvider: getProgramAccounts not yet implemented".to_string()))
+    async fn get_program_accounts(
+        &self,
+        _program_id: &str,
+    ) -> AresResult<Vec<(String, AccountInfo)>> {
+        Err(AresError::Rpc(
+            "StandardRpcProvider: getProgramAccounts not yet implemented".to_string(),
+        ))
     }
 
-    async fn get_signatures_for_address(&self, _address: &str, _limit: usize) -> AresResult<Vec<TransactionSignature>> {
-        Err(AresError::Rpc("StandardRpcProvider: getSignaturesForAddress not yet implemented".to_string()))
+    async fn get_signatures_for_address(
+        &self,
+        _address: &str,
+        _limit: usize,
+    ) -> AresResult<Vec<TransactionSignature>> {
+        Err(AresError::Rpc(
+            "StandardRpcProvider: getSignaturesForAddress not yet implemented".to_string(),
+        ))
     }
 
     async fn download_program(&self, program_id: &str) -> AresResult<ProgramInfo> {
         let account = self.get_account_info(program_id).await?;
         match account {
             Some(acc) if acc.executable => {
-                let bytecode = acc.data
+                let bytecode = acc
+                    .data
                     .as_ref()
                     .map(|d| {
                         base64::engine::general_purpose::STANDARD
                             .decode(d.as_bytes())
-                            .map_err(|e| AresError::Ingestion(format!("Base64 decode failed: {}", e)))
+                            .map_err(|e| {
+                                AresError::Ingestion(format!("Base64 decode failed: {}", e))
+                            })
                     })
                     .transpose()?
                     .unwrap_or_default();
                 Ok(ProgramInfo::new(program_id, bytecode))
             }
-            Some(_) => Err(AresError::InvalidProgramId(format!("{} is not executable", program_id))),
+            Some(_) => Err(AresError::InvalidProgramId(format!(
+                "{} is not executable",
+                program_id
+            ))),
             None => Err(AresError::ProgramNotFound(program_id.to_string())),
         }
     }

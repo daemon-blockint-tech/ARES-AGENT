@@ -1,8 +1,6 @@
 use crate::Cli;
 use ares_core::{CVEEntry, DetectionContext};
-use ares_detectors::{
-    CpiTracerDetector, DetectorPipeline, RiskEngine, StaticRulesDetector,
-};
+use ares_detectors::{CpiTracerDetector, DetectorPipeline, RiskEngine, StaticRulesDetector};
 use ares_evidence::{EvidenceAnchorer, EvidenceBundler};
 use ares_ingestion::{HeliusProvider, Indexer, RpcProvider, StandardRpcProvider};
 use std::sync::Arc;
@@ -25,7 +23,9 @@ pub async fn ingest(cli: &Cli, program_id: &str) -> anyhow::Result<()> {
     let provider = make_provider(cli);
     let indexer = Indexer::open(&cli.db_path)?;
 
-    let program = indexer.ingest_program(provider.as_ref(), program_id).await?;
+    let program = indexer
+        .ingest_program(provider.as_ref(), program_id)
+        .await?;
 
     println!(
         "Ingested program: {} ({} bytes bytecode, source: {})",
@@ -46,7 +46,9 @@ pub async fn scan(cli: &Cli, program_id: &str) -> anyhow::Result<()> {
         None => {
             tracing::info!("Program not in index, ingesting...");
             let provider = make_provider(cli);
-            indexer.ingest_program(provider.as_ref(), program_id).await?
+            indexer
+                .ingest_program(provider.as_ref(), program_id)
+                .await?
         }
     };
 
@@ -99,7 +101,8 @@ pub async fn scan(cli: &Cli, program_id: &str) -> anyhow::Result<()> {
     if !findings.is_empty() {
         let mut bundler = EvidenceBundler::new();
         bundler.add_many(&findings);
-        if let Some(bundle) = bundler.finalize(&format!("batch_{}", chrono::Utc::now().timestamp())) {
+        if let Some(bundle) = bundler.finalize(&format!("batch_{}", chrono::Utc::now().timestamp()))
+        {
             println!("\nEvidence Bundle: {}", bundle.batch_id);
             println!("  Findings: {}", bundle.findings.len());
             println!("  Merkle Root: {}", bundle.merkle_root);
@@ -139,7 +142,10 @@ pub async fn list_findings(
     class: Option<String>,
 ) -> anyhow::Result<()> {
     // TODO: Query from sled DB or API
-    println!("Findings query: program_id={:?}, severity={:?}, class={:?}", program_id, severity, class);
+    println!(
+        "Findings query: program_id={:?}, severity={:?}, class={:?}",
+        program_id, severity, class
+    );
     println!("Note: Findings are stored in-memory during scan. Start the API server with 'ares serve' for persistent access.");
     Ok(())
 }
@@ -147,7 +153,10 @@ pub async fn list_findings(
 pub async fn get_risk(_cli: &Cli, program_id: &str) -> anyhow::Result<()> {
     // TODO: Query from sled DB or API
     println!("Risk score for: {}", program_id);
-    println!("Note: Run 'ares scan {}' first to compute risk score.", program_id);
+    println!(
+        "Note: Run 'ares scan {}' first to compute risk score.",
+        program_id
+    );
     Ok(())
 }
 
@@ -191,16 +200,22 @@ pub async fn cve_search(keyword: &str) -> anyhow::Result<()> {
     let kw = keyword.to_lowercase();
     let known: Vec<CVEEntry> = match kw.as_str() {
         k if k.contains("anchor") || k.contains("authority") || k.contains("cve-2026-45137") => {
-            vec![CVEEntry::new("CVE-2026-45137", "Anchor framework authority bypass in account validation")
-                .with_cvss(9.8, "CRITICAL")
-                .with_references(vec![
-                    "https://github.com/coral-xyz/anchor/security/advisories".to_string(),
-                    "https://www.sentinelone.com/vulnerability-database/cve-2026-45137/".to_string(),
-                ])]
+            vec![CVEEntry::new(
+                "CVE-2026-45137",
+                "Anchor framework authority bypass in account validation",
+            )
+            .with_cvss(9.8, "CRITICAL")
+            .with_references(vec![
+                "https://github.com/coral-xyz/anchor/security/advisories".to_string(),
+                "https://www.sentinelone.com/vulnerability-database/cve-2026-45137/".to_string(),
+            ])]
         }
         k if k.contains("solana") || k.contains("web3") => {
-            vec![CVEEntry::new("CVE-2022-23734", "Solana web3.js private key leakage via error messages")
-                .with_cvss(7.5, "HIGH")]
+            vec![CVEEntry::new(
+                "CVE-2022-23734",
+                "Solana web3.js private key leakage via error messages",
+            )
+            .with_cvss(7.5, "HIGH")]
         }
         _ => Vec::new(),
     };
@@ -210,8 +225,15 @@ pub async fn cve_search(keyword: &str) -> anyhow::Result<()> {
     } else {
         println!("Found {} CVE(s) for '{}':", known.len(), keyword);
         for cve in &known {
-            let score = cve.cvss_v3_score.map_or("N/A".to_string(), |s| format!("{:.1}", s));
-            println!("  {} (CVSS: {}, {})", cve.cve_id, score, cve.cvss_v3_severity.as_deref().unwrap_or("N/A"));
+            let score = cve
+                .cvss_v3_score
+                .map_or("N/A".to_string(), |s| format!("{:.1}", s));
+            println!(
+                "  {} (CVSS: {}, {})",
+                cve.cve_id,
+                score,
+                cve.cvss_v3_severity.as_deref().unwrap_or("N/A")
+            );
             println!("    {}", cve.description);
             if !cve.references.is_empty() {
                 println!("    References:");

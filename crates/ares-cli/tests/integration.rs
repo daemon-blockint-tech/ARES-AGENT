@@ -1,6 +1,6 @@
 use ares_core::{
-    DetectionContext, Evidence, EvidenceBundle, Finding, MerkleTree,
-    ProgramInfo, RiskScore, Severity, VulnerabilityClass,
+    DetectionContext, Evidence, EvidenceBundle, Finding, MerkleTree, ProgramInfo, RiskScore,
+    Severity, VulnerabilityClass,
 };
 use ares_detectors::{DetectorPipeline, RiskEngine, StaticRulesDetector};
 use ares_evidence::EvidenceBundler;
@@ -9,7 +9,9 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_full_pipeline_static_rules() {
     // Create a fake program with some bytecode
-    let bytecode = vec![0x79, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x61, 0x66, 0x0c, 0x00];
+    let bytecode = vec![
+        0x79, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x61, 0x66, 0x0c, 0x00,
+    ];
     let program = ProgramInfo::new("Test11111111111111111111111111111111111", bytecode);
 
     let ctx = DetectionContext {
@@ -23,7 +25,10 @@ async fn test_full_pipeline_static_rules() {
     let findings = pipeline.run(&ctx).await;
 
     // Should find at least some findings from static rules
-    assert!(!findings.is_empty(), "Expected findings from static rules detector");
+    assert!(
+        !findings.is_empty(),
+        "Expected findings from static rules detector"
+    );
 
     // All findings should have the correct program_id
     for f in &findings {
@@ -34,9 +39,30 @@ async fn test_full_pipeline_static_rules() {
 #[tokio::test]
 async fn test_risk_scoring() {
     let findings = vec![
-        Finding::new("prog1", "test", "Missing owner check", "desc", Severity::Critical, VulnerabilityClass::C2),
-        Finding::new("prog1", "test", "Arbitrary CPI", "desc", Severity::Critical, VulnerabilityClass::C2),
-        Finding::new("prog1", "test", "Integer overflow", "desc", Severity::Low, VulnerabilityClass::C3),
+        Finding::new(
+            "prog1",
+            "test",
+            "Missing owner check",
+            "desc",
+            Severity::Critical,
+            VulnerabilityClass::C2,
+        ),
+        Finding::new(
+            "prog1",
+            "test",
+            "Arbitrary CPI",
+            "desc",
+            Severity::Critical,
+            VulnerabilityClass::C2,
+        ),
+        Finding::new(
+            "prog1",
+            "test",
+            "Integer overflow",
+            "desc",
+            Severity::Low,
+            VulnerabilityClass::C3,
+        ),
     ];
 
     let engine = RiskEngine::default();
@@ -51,12 +77,7 @@ async fn test_risk_scoring() {
 
 #[test]
 fn test_merkle_tree() {
-    let leaves = vec![
-        vec![1u8; 32],
-        vec![2u8; 32],
-        vec![3u8; 32],
-        vec![4u8; 32],
-    ];
+    let leaves = vec![vec![1u8; 32], vec![2u8; 32], vec![3u8; 32], vec![4u8; 32]];
 
     let tree = MerkleTree::new(&leaves);
     assert_eq!(tree.leaf_count(), 4);
@@ -69,7 +90,14 @@ fn test_merkle_tree() {
 
 #[test]
 fn test_evidence_bundle() {
-    let finding = Finding::new("prog1", "test", "Test finding", "desc", Severity::High, VulnerabilityClass::C2);
+    let finding = Finding::new(
+        "prog1",
+        "test",
+        "Test finding",
+        "desc",
+        Severity::High,
+        VulnerabilityClass::C2,
+    );
     let evidence = Evidence::new(&finding);
 
     let bundle = EvidenceBundle::new("batch_001", vec![evidence]).unwrap();
@@ -84,8 +112,22 @@ fn test_evidence_bundle() {
 async fn test_evidence_bundler() {
     let mut bundler = EvidenceBundler::new();
 
-    let f1 = Finding::new("prog1", "d1", "Finding 1", "desc", Severity::Critical, VulnerabilityClass::C2);
-    let f2 = Finding::new("prog1", "d2", "Finding 2", "desc", Severity::High, VulnerabilityClass::C3);
+    let f1 = Finding::new(
+        "prog1",
+        "d1",
+        "Finding 1",
+        "desc",
+        Severity::Critical,
+        VulnerabilityClass::C2,
+    );
+    let f2 = Finding::new(
+        "prog1",
+        "d2",
+        "Finding 2",
+        "desc",
+        Severity::High,
+        VulnerabilityClass::C3,
+    );
 
     bundler.add(&f1);
     bundler.add(&f2);
@@ -113,8 +155,14 @@ fn test_vulnerability_class_codes() {
     assert_eq!(VulnerabilityClass::C2.code(), "C2");
     assert_eq!(VulnerabilityClass::C3.code(), "C3");
 
-    assert_eq!(VulnerabilityClass::from_code("c1"), Some(VulnerabilityClass::C1));
-    assert_eq!(VulnerabilityClass::from_code("C2"), Some(VulnerabilityClass::C2));
+    assert_eq!(
+        VulnerabilityClass::from_code("c1"),
+        Some(VulnerabilityClass::C1)
+    );
+    assert_eq!(
+        VulnerabilityClass::from_code("C2"),
+        Some(VulnerabilityClass::C2)
+    );
     assert_eq!(VulnerabilityClass::from_code("X1"), None);
 }
 

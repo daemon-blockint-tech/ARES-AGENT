@@ -1,7 +1,7 @@
-pub mod provider;
-pub mod indexer;
 pub mod config;
+pub mod indexer;
+pub mod provider;
 
-pub use provider::{RpcProvider, HeliusProvider, StandardRpcProvider};
-pub use indexer::Indexer;
 pub use config::IngestionConfig;
+pub use indexer::Indexer;
+pub use provider::{HeliusProvider, RpcProvider, StandardRpcProvider};

@@ -1,18 +1,18 @@
-use ares_core::{Finding, Severity};
 use crate::state::WebhookConfig;
+use ares_core::{Finding, Severity};
 use std::time::Duration;
 
 /// Dispatch webhook notifications for new findings
-pub async fn dispatch_webhooks(
-    webhooks: &[WebhookConfig],
-    finding: &Finding,
-) {
+pub async fn dispatch_webhooks(webhooks: &[WebhookConfig], finding: &Finding) {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap_or_else(|e| {
-            tracing::warn!("Failed to build hardened webhook client ({}), falling back to default", e);
+            tracing::warn!(
+                "Failed to build hardened webhook client ({}), falling back to default",
+                e
+            );
             reqwest::Client::new()
         });
 
@@ -42,11 +42,7 @@ pub async fn dispatch_webhooks(
 
         match client.post(&hook.url).json(&payload).send().await {
             Ok(resp) => {
-                tracing::info!(
-                    "Webhook {} dispatched: status {}",
-                    hook.id,
-                    resp.status()
-                );
+                tracing::info!("Webhook {} dispatched: status {}", hook.id, resp.status());
             }
             Err(e) => {
                 tracing::warn!("Webhook {} failed: {}", hook.id, e);

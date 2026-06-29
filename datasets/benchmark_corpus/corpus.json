@@ -89,6 +89,456 @@
       "description": "Program updates state after CPI call, allowing callee to observe stale state and exploit it.",
       "detector_id": "cpi_tracer",
       "exploit_scenario": "Attacker's program is invoked via CPI, sees stale state, and exploits the inconsistency before the caller updates."
+    },
+    {
+      "program_id": "Opt1...11111111111111111111111111111111",
+      "title": "Missing owner check on token account withdrawal",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program withdraws from token accounts without verifying the owner field matches the expected SPL Token program.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker creates a fake token account with the same structure but different owner, passes it to the withdrawal function."
+    },
+    {
+      "program_id": "Opt2...11111111111111111111111111111111",
+      "title": "Uninitialized account used as authority",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program checks authority field on an account that may not be initialized, defaulting to zero address which matches system program.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker passes an uninitialized account whose authority field defaults to zero, bypassing the authority check."
+    },
+    {
+      "program_id": "Opt3...11111111111111111111111111111111",
+      "title": "Missing rent exemption check on created accounts",
+      "severity": "low",
+      "vulnerability_class": "C2",
+      "description": "Program creates accounts without verifying they are rent-exempt, allowing garbage collection of critical state.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker creates accounts with minimal lamports that get garbage collected, losing program state."
+    },
+    {
+      "program_id": "Opt4...11111111111111111111111111111111",
+      "title": "Signer check bypass via unchecked remaining_accounts",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program iterates remaining_accounts without verifying signer status for privileged operations.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker includes non-signer accounts in remaining_accounts that are used for privileged operations."
+    },
+    {
+      "program_id": "Opt5...11111111111111111111111111111111",
+      "title": "Account discriminator mismatch on deserialization",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program deserializes accounts without checking the Anchor discriminator, allowing type confusion.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker passes an account of the wrong type that has compatible data layout, causing type confusion."
+    },
+    {
+      "program_id": "Opt6...11111111111111111111111111111111",
+      "title": "Close account without returning lamports",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program closes accounts but lamports are not returned to the owner, effectively burning user funds.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Program closes user accounts and lamports go to the program instead of the rightful owner."
+    },
+    {
+      "program_id": "Opt7...11111111111111111111111111111111",
+      "title": "Missing close authority check",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Account close function does not verify the close authority matches the original depositor.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker calls the close function on another user's account, draining their lamports."
+    },
+    {
+      "program_id": "Opt8...11111111111111111111111111111111",
+      "title": "PDA not re-derived in instruction handler",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program accepts a PDA as input without re-deriving it from canonical seeds, allowing arbitrary PDA substitution.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker passes a different PDA than the one derived from canonical seeds, redirecting funds."
+    },
+    {
+      "program_id": "Opt9...11111111111111111111111111111111",
+      "title": "Missing bump seed in PDA verification",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program verifies PDA seeds but not the bump, allowing collision attacks with different bump values.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker finds a PDA with different bump that collides with the canonical PDA address."
+    },
+    {
+      "program_id": "Opt10...11111111111111111111111111111111",
+      "title": "Unchecked return value from SPL token transfer",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program ignores the return value of SPL token transfer CPI, failing silently on errors.",
+      "detector_id": "cpi_tracer",
+      "exploit_scenario": "Token transfer fails but program continues as if successful, crediting the user without actual transfer."
+    },
+    {
+      "program_id": "Opt11...11111111111111111111111111111111",
+      "title": "Flash loan price manipulation in AMM",
+      "severity": "critical",
+      "vulnerability_class": "C1",
+      "description": "AMM uses spot price from a single pool without flash loan protection, allowing price manipulation.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker takes a flash loan, manipulates pool price, exploits dependent protocol, repays loan."
+    },
+    {
+      "program_id": "Opt12...11111111111111111111111111111111",
+      "title": "Replay attack on signed instructions",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program processes signed instructions without nonce tracking, allowing replay of valid signatures.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker captures a valid signed instruction and replays it multiple times."
+    },
+    {
+      "program_id": "Opt13...11111111111111111111111111111111",
+      "title": "Missing deadline parameter on swap",
+      "severity": "medium",
+      "vulnerability_class": "C1",
+      "description": "Swap function has no deadline check, allowing pending transactions to be sandwiched.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker front-runs a pending swap, manipulates price, then back-runs for profit."
+    },
+    {
+      "program_id": "Opt14...11111111111111111111111111111111",
+      "title": "Slippage protection bypass via zero minimum",
+      "severity": "medium",
+      "vulnerability_class": "C1",
+      "description": "Swap allows minimum_out=0, disabling slippage protection entirely.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker sandwiches a swap with zero minimum output, extracting maximum value."
+    },
+    {
+      "program_id": "Opt15...11111111111111111111111111111111",
+      "title": "Oracle staleness check missing",
+      "severity": "high",
+      "vulnerability_class": "C1",
+      "description": "Program uses oracle price without checking the update timestamp, allowing stale price exploitation.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker exploits a stale oracle price that doesn't reflect current market conditions."
+    },
+    {
+      "program_id": "Opt16...11111111111111111111111111111111",
+      "title": "Integer overflow in reward calculation",
+      "severity": "high",
+      "vulnerability_class": "C3",
+      "description": "Staking reward calculation multiplies amount by rate without overflow check, allowing infinite rewards.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker stakes maximum amount, causing overflow in reward calculation, receiving inflated rewards."
+    },
+    {
+      "program_id": "Opt17...11111111111111111111111111111111",
+      "title": "Division by zero in fee calculation",
+      "severity": "low",
+      "vulnerability_class": "C3",
+      "description": "Fee calculation divides by total_supply without checking for zero, causing panic and DoS.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker drains the pool to zero supply, then triggers fee calculation causing panic."
+    },
+    {
+      "program_id": "Opt18...11111111111111111111111111111111",
+      "title": "Unchecked arithmetic in balance update",
+      "severity": "high",
+      "vulnerability_class": "C3",
+      "description": "Balance update uses wrapping subtraction without underflow check, allowing wrap-around to max value.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker triggers a subtraction that underflows, wrapping balance to u64::MAX."
+    },
+    {
+      "program_id": "Opt19...11111111111111111111111111111111",
+      "title": "Precision loss in ratio calculation",
+      "severity": "low",
+      "vulnerability_class": "C3",
+      "description": "Token ratio calculation truncates before multiplication, causing systematic fund loss.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Repeated small trades exploit truncation, extracting value over time."
+    },
+    {
+      "program_id": "Opt20...11111111111111111111111111111111",
+      "title": "Missing freeze authority check on token mint",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program accepts a token mint without verifying the freeze authority is the expected program.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker creates a token mint with themselves as freeze authority, freezing user accounts."
+    },
+    {
+      "program_id": "Opt21...11111111111111111111111111111111",
+      "title": "CPI guard missing on user-facing instruction",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program instruction allows arbitrary CPI calls without restricting the target program.",
+      "detector_id": "cpi_tracer",
+      "exploit_scenario": "Attacker uses the program as a CPI proxy to call arbitrary programs with the program's authority."
+    },
+    {
+      "program_id": "Opt22...11111111111111111111111111111111",
+      "title": "Missing account size validation on resize",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program resizes accounts without validating the new size, allowing excessive allocation.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker resizes an account to maximum size, consuming excessive rent and causing DoS."
+    },
+    {
+      "program_id": "Opt23...11111111111111111111111111111111",
+      "title": "Cross-program account confusion via same layout",
+      "severity": "critical",
+      "vulnerability_class": "C2",
+      "description": "Two programs use the same account data layout, and neither checks the owner field, allowing cross-program account reuse.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker passes an account from program A to program B, which deserializes it as its own type."
+    },
+    {
+      "program_id": "Opt24...11111111111111111111111111111111",
+      "title": "Admin function without timelock",
+      "severity": "medium",
+      "vulnerability_class": "C1",
+      "description": "Admin can change critical parameters instantly without a timelock, allowing rug pulls.",
+      "detector_id": "any",
+      "exploit_scenario": "Compromised admin key instantly changes fee to 100%, draining user funds."
+    },
+    {
+      "program_id": "Opt25...11111111111111111111111111111111",
+      "title": "Missing multisig for admin operations",
+      "severity": "medium",
+      "vulnerability_class": "C1",
+      "description": "Admin operations require only a single signer, creating a single point of failure.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker compromises the single admin key and drains all funds."
+    },
+    {
+      "program_id": "Opt26...11111111111111111111111111111111",
+      "title": "Unchecked delegation in token transfer",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program transfers tokens from delegated accounts without verifying delegation amount.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker exploits a stale delegation that should have been revoked, transferring more than authorized."
+    },
+    {
+      "program_id": "Opt27...11111111111111111111111111111111",
+      "title": "Associated token account not verified",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program accepts token accounts without verifying they are the correct ATA for the user and mint.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker passes a different ATA, causing tokens to be sent to the wrong recipient."
+    },
+    {
+      "program_id": "Opt28...11111111111111111111111111111111",
+      "title": "Missing check on mint authority",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program accepts a mint without verifying the mint authority is the expected program or multisig.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker creates a fake mint with themselves as authority, minting tokens that the program treats as valid."
+    },
+    {
+      "program_id": "Opt29...11111111111111111111111111111111",
+      "title": "Swap route manipulation via unverified oracle",
+      "severity": "critical",
+      "vulnerability_class": "C1",
+      "description": "Aggregator uses an on-chain price oracle that can be manipulated by flash loans for route selection.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker manipulates oracle price to force aggregator to pick a suboptimal route, extracting arbitrage."
+    },
+    {
+      "program_id": "Opt30...11111111111111111111111111111111",
+      "title": "Liquidity pool drain via imbalanced withdrawal",
+      "severity": "critical",
+      "vulnerability_class": "C1",
+      "description": "Withdrawal function allows removing only one side of the LP pair, breaking the invariant.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker withdraws only the valuable token from the LP, leaving worthless tokens as backing."
+    },
+    {
+      "program_id": "Opt31...11111111111111111111111111111111",
+      "title": "Missing invariant check after state mutation",
+      "severity": "high",
+      "vulnerability_class": "C1",
+      "description": "Program mutates pool state without verifying invariants hold after the operation.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker crafts a sequence of operations that leaves the pool in an inconsistent state for exploitation."
+    },
+    {
+      "program_id": "Opt32...11111111111111111111111111111111",
+      "title": "Front-running on liquidation",
+      "severity": "medium",
+      "vulnerability_class": "C1",
+      "description": "Liquidation function is front-runnable, allowing MEV extraction from liquidators.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker front-runs a liquidation transaction, claiming the liquidation bonus themselves."
+    },
+    {
+      "program_id": "Opt33...11111111111111111111111111111111",
+      "title": "Missing collateral ratio check after price update",
+      "severity": "high",
+      "vulnerability_class": "C1",
+      "description": "Lending protocol does not recheck collateral ratio after oracle price update within the same transaction.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker updates oracle price and borrows in the same transaction, bypassing the collateral ratio check."
+    },
+    {
+      "program_id": "Opt34...11111111111111111111111111111111",
+      "title": "Unchecked metadata URL in NFT mint",
+      "severity": "low",
+      "vulnerability_class": "C2",
+      "description": "NFT mint accepts arbitrary metadata URLs without validation, allowing malicious external references.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker sets metadata URL to a malicious server that serves different content to different viewers."
+    },
+    {
+      "program_id": "Opt35...11111111111111111111111111111111",
+      "title": "Royalty bypass via direct transfer",
+      "severity": "medium",
+      "vulnerability_class": "C1",
+      "description": "NFT marketplace enforces royalties only on marketplace trades, not on direct transfers.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker transfers NFT directly to buyer off-marketplace, bypassing royalty payments."
+    },
+    {
+      "program_id": "Opt36...11111111111111111111111111111111",
+      "title": "Missing token-2022 extension check",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program uses SPL Token but does not account for Token-2022 extensions like transfer fees.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker uses Token-2022 with transfer fees, causing balance mismatches in the program's accounting."
+    },
+    {
+      "program_id": "Opt37...11111111111111111111111111111111",
+      "title": "Authority escalation via unchecked update",
+      "severity": "critical",
+      "vulnerability_class": "C2",
+      "description": "Update function allows setting authority to any value without verifying the new authority is valid.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker calls update with their own pubkey as the new authority, taking over the program."
+    },
+    {
+      "program_id": "Opt38...11111111111111111111111111111111",
+      "title": "Missing event emission on state change",
+      "severity": "low",
+      "vulnerability_class": "C2",
+      "description": "Critical state changes do not emit events, making off-chain monitoring impossible.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker exploits the lack of monitoring by making undetected state changes."
+    },
+    {
+      "program_id": "Opt39...11111111111111111111111111111111",
+      "title": "Unsafe type cast in amount calculation",
+      "severity": "high",
+      "vulnerability_class": "C3",
+      "description": "Program casts u128 to u64 without checking for truncation, losing high bits on large values.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker crafts inputs that produce a u128 value exceeding u64::MAX, truncating to a small value."
+    },
+    {
+      "program_id": "Opt40...11111111111111111111111111111111",
+      "title": "Missing check on program upgrade authority",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program interacts with another program without verifying its upgrade authority is known/expected.",
+      "detector_id": "cpi_tracer",
+      "exploit_scenario": "Target program is upgraded to a malicious version, and the calling program still trusts it."
+    },
+    {
+      "program_id": "Opt41...11111111111111111111111111111111",
+      "title": "Stale PDA bump in seed derivation",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program stores PDA bump and uses it in seeds instead of calling find_program_address, allowing bump manipulation.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker manipulates the stored bump value, causing the PDA to resolve to a different address."
+    },
+    {
+      "program_id": "Opt42...11111111111111111111111111111111",
+      "title": "Missing validation on user-supplied program ID",
+      "severity": "critical",
+      "vulnerability_class": "C2",
+      "description": "Program accepts a program ID as input and invokes CPI to it without whitelisting.",
+      "detector_id": "cpi_tracer",
+      "exploit_scenario": "Attacker supplies their own malicious program ID, which is invoked via CPI with the caller's authority."
+    },
+    {
+      "program_id": "Opt43...11111111111111111111111111111111",
+      "title": "Economic griefing via dust amounts",
+      "severity": "low",
+      "vulnerability_class": "C1",
+      "description": "Protocol allows dust deposits that trigger full reward calculations, causing economic griefing.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker makes many dust deposits, each triggering full reward accrual, draining the reward pool."
+    },
+    {
+      "program_id": "Opt44...11111111111111111111111111111111",
+      "title": "Missing re-initialization guard",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Init function can be called multiple times, resetting state and allowing authority takeover.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker calls init on an already-initialized account, resetting the authority to themselves."
+    },
+    {
+      "program_id": "Opt45...11111111111111111111111111111111",
+      "title": "Cross-instance replay of signed message",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Signed message does not include the program ID or instance ID, allowing replay across different deployments.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker takes a valid signature from one deployment and replays it on another."
+    },
+    {
+      "program_id": "Opt46...11111111111111111111111111111111",
+      "title": "Missing check on associated token account owner",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Program verifies the ATA address but not that the account owner matches the expected user.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker creates an ATA for a different user and passes it, redirecting tokens."
+    },
+    {
+      "program_id": "Opt47...11111111111111111111111111111111",
+      "title": "Unchecked conversion fee in swap path",
+      "severity": "medium",
+      "vulnerability_class": "C1",
+      "description": "Multi-hop swap does not account for conversion fees between hops, causing output shortfall.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker exploits the fee accounting gap to extract value from multi-hop swaps."
+    },
+    {
+      "program_id": "Opt48...11111111111111111111111111111111",
+      "title": "Missing domain separation in signature verification",
+      "severity": "high",
+      "vulnerability_class": "C2",
+      "description": "Signature verification does not include a domain separator, allowing cross-protocol signature reuse.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker reuses a signature from a different protocol that uses the same signing scheme."
+    },
+    {
+      "program_id": "Opt49...11111111111111111111111111111111",
+      "title": "Reward calculation uses stale total supply",
+      "severity": "high",
+      "vulnerability_class": "C1",
+      "description": "Reward per token is calculated using a cached total supply that may be stale, allowing inflated rewards.",
+      "detector_id": "any",
+      "exploit_scenario": "Attacker deposits after total supply changes but before the cache updates, receiving inflated rewards."
+    },
+    {
+      "program_id": "Opt50...11111111111111111111111111111111",
+      "title": "Missing check on instruction discriminant in fallback",
+      "severity": "medium",
+      "vulnerability_class": "C2",
+      "description": "Program's fallback handler processes instructions without checking the discriminant, allowing unintended execution paths.",
+      "detector_id": "static_rules",
+      "exploit_scenario": "Attacker sends an instruction with an unknown discriminant that falls through to the fallback handler."
     }
   ]
 }

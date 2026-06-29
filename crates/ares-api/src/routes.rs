@@ -1,7 +1,7 @@
 use crate::auth::require_api_key;
 use crate::ssrf::validate_webhook_url;
 use crate::state::{AppState, WebhookConfig};
-use ares_core::{Finding, CVEEntry};
+use ares_core::{CVEEntry, Finding};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -43,8 +43,7 @@ pub fn create_router(state: AppState) -> Router {
     let shared_state = std::sync::Arc::new(state);
 
     // Public routes (no auth required)
-    let public_routes = Router::new()
-        .route("/health", get(health));
+    let public_routes = Router::new().route("/health", get(health));
 
     // Protected routes (require API key if configured)
     let protected_routes = Router::new()
@@ -60,9 +59,7 @@ pub fn create_router(state: AppState) -> Router {
             require_api_key(api_key.clone(), req, next)
         }));
 
-    Router::new()
-        .merge(public_routes)
-        .merge(protected_routes)
+    Router::new().merge(public_routes).merge(protected_routes)
 }
 
 async fn health() -> Json<HealthResponse> {
@@ -115,9 +112,7 @@ async fn get_risk(
     }
 }
 
-async fn list_families(
-    State(_state): State<std::sync::Arc<AppState>>,
-) -> Json<serde_json::Value> {
+async fn list_families(State(_state): State<std::sync::Arc<AppState>>) -> Json<serde_json::Value> {
     // TODO: Integrate with Python ares_family service
     Json(serde_json::json!({
         "families": [],
@@ -144,7 +139,9 @@ async fn register_webhook(
         id: Uuid::new_v4().to_string(),
         url: req.url,
         min_severity: req.min_severity.unwrap_or_else(|| "high".to_string()),
-        event_types: req.event_types.unwrap_or_else(|| vec!["finding".to_string()]),
+        event_types: req
+            .event_types
+            .unwrap_or_else(|| vec!["finding".to_string()]),
     };
 
     let mut webhooks = state.webhooks.write().await;
@@ -153,9 +150,7 @@ async fn register_webhook(
     Ok(Json(config))
 }
 
-async fn eval_metrics(
-    State(_state): State<std::sync::Arc<AppState>>,
-) -> Json<serde_json::Value> {
+async fn eval_metrics(State(_state): State<std::sync::Arc<AppState>>) -> Json<serde_json::Value> {
     // TODO: Proxy to Python ares_eval service
     Json(serde_json::json!({
         "message": "Eval lab service not yet connected. Start python/ares_eval service.",
@@ -175,22 +170,29 @@ pub struct CVESearchResponse {
     pub results: Vec<CVEEntry>,
 }
 
-async fn search_cves(
-    Query(query): Query<CVESearchQuery>,
-) -> Json<CVESearchResponse> {
+async fn search_cves(Query(query): Query<CVESearchQuery>) -> Json<CVESearchResponse> {
     // Known Solana ecosystem CVEs for offline response
     let known: Vec<CVEEntry> = match query.keyword.to_lowercase().as_str() {
-        kw if kw.contains("anchor") || kw.contains("authority") || kw.contains("cve-2026-45137") => {
-            vec![CVEEntry::new("CVE-2026-45137", "Anchor framework authority bypass in account validation")
-                .with_cvss(9.8, "CRITICAL")
-                .with_references(vec![
-                    "https://github.com/coral-xyz/anchor/security/advisories".to_string(),
-                    "https://www.sentinelone.com/vulnerability-database/cve-2026-45137/".to_string(),
-                ])]
+        kw if kw.contains("anchor")
+            || kw.contains("authority")
+            || kw.contains("cve-2026-45137") =>
+        {
+            vec![CVEEntry::new(
+                "CVE-2026-45137",
+                "Anchor framework authority bypass in account validation",
+            )
+            .with_cvss(9.8, "CRITICAL")
+            .with_references(vec![
+                "https://github.com/coral-xyz/anchor/security/advisories".to_string(),
+                "https://www.sentinelone.com/vulnerability-database/cve-2026-45137/".to_string(),
+            ])]
         }
         kw if kw.contains("solana") || kw.contains("web3") => {
-            vec![CVEEntry::new("CVE-2022-23734", "Solana web3.js private key leakage via error messages")
-                .with_cvss(7.5, "HIGH")]
+            vec![CVEEntry::new(
+                "CVE-2022-23734",
+                "Solana web3.js private key leakage via error messages",
+            )
+            .with_cvss(7.5, "HIGH")]
         }
         _ => Vec::new(),
     };

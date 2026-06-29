@@ -1,5 +1,5 @@
 use ares_core::{
-    Detector, DetectionContext, DetectorMetadata, Finding, Severity, VulnerabilityClass,
+    DetectionContext, Detector, DetectorMetadata, Finding, Severity, VulnerabilityClass,
 };
 use async_trait::async_trait;
 
@@ -100,9 +100,9 @@ impl StaticRulesDetector {
 
             if has_cpi {
                 // Check if there's a program_id comparison before invoke
-                let has_program_check = bytecode.windows(6).any(|w| {
-                    w[0] == 0x18 && w[1] == 0x00 && w[2] == 0x00 && w[3] == 0x00
-                });
+                let has_program_check = bytecode
+                    .windows(6)
+                    .any(|w| w[0] == 0x18 && w[1] == 0x00 && w[2] == 0x00 && w[3] == 0x00);
 
                 if !has_program_check {
                     findings.push(
@@ -213,8 +213,10 @@ impl Detector for StaticRulesDetector {
             id: "static_rules".to_string(),
             name: "Static Rules Detector".to_string(),
             version: "0.1.0".to_string(),
-            description: "Static analysis for C2/C3 vulnerability classes: missing owner/signer/key checks, \
-                          arbitrary CPI, PDA seed validation, integer arithmetic".to_string(),
+            description:
+                "Static analysis for C2/C3 vulnerability classes: missing owner/signer/key checks, \
+                          arbitrary CPI, PDA seed validation, integer arithmetic"
+                    .to_string(),
             supported_classes: vec!["C2".to_string(), "C3".to_string()],
         }
     }

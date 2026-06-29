@@ -1,4 +1,4 @@
-use ares_core::{Detector, DetectionContext, Finding};
+use ares_core::{DetectionContext, Detector, Finding};
 use std::sync::Arc;
 
 pub struct DetectorPipeline {
@@ -29,11 +29,7 @@ impl DetectorPipeline {
             tracing::info!("Running detector: {} v{}", meta.name, meta.version);
 
             let findings = detector.detect(ctx).await;
-            tracing::info!(
-                "Detector {} found {} findings",
-                meta.name,
-                findings.len()
-            );
+            tracing::info!("Detector {} found {} findings", meta.name, findings.len());
 
             all_findings.extend(findings);
         }
@@ -46,7 +42,11 @@ impl DetectorPipeline {
         let mut unique = Vec::new();
 
         for f in findings {
-            let key = (f.program_id.clone(), f.title.clone(), f.class.code().to_string());
+            let key = (
+                f.program_id.clone(),
+                f.title.clone(),
+                f.class.code().to_string(),
+            );
             if !seen.contains(&key) {
                 seen.push(key);
                 unique.push(f);

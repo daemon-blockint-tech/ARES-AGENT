@@ -1,5 +1,5 @@
 use ares_core::{
-    Detector, DetectionContext, DetectorMetadata, Finding, Severity, VulnerabilityClass,
+    DetectionContext, Detector, DetectorMetadata, Finding, Severity, VulnerabilityClass,
 };
 use async_trait::async_trait;
 
@@ -148,22 +148,20 @@ impl CpiTracerDetector {
         let risk = Self::compute_cpi_risk(edges);
         if risk > 0.5 {
             let unverified_edges = edges.iter().filter(|e| !e.has_program_id_check).count();
-            findings.push(
-                Finding::new(
-                    "unknown",
-                    "cpi_tracer",
-                    "High CPI risk score: majority of CPI edges unverified",
-                    &format!(
-                        "{}/{} CPI edges lack program_id verification ({:.0}%). \
+            findings.push(Finding::new(
+                "unknown",
+                "cpi_tracer",
+                "High CPI risk score: majority of CPI edges unverified",
+                &format!(
+                    "{}/{} CPI edges lack program_id verification ({:.0}%). \
                          This program has elevated CPI risk.",
-                        unverified_edges,
-                        edges.len(),
-                        risk * 100.0
-                    ),
-                    Severity::High,
-                    VulnerabilityClass::C2,
+                    unverified_edges,
+                    edges.len(),
+                    risk * 100.0
                 ),
-            );
+                Severity::High,
+                VulnerabilityClass::C2,
+            ));
         }
 
         findings
@@ -202,8 +200,10 @@ impl Detector for CpiTracerDetector {
             id: "cpi_tracer".to_string(),
             name: "CPI Graph Tracer".to_string(),
             version: "0.1.0".to_string(),
-            description: "Extracts and verifies CPI interaction graphs, detects missing validation \
-                          in cross-program invocations, computes CPI risk scores".to_string(),
+            description:
+                "Extracts and verifies CPI interaction graphs, detects missing validation \
+                          in cross-program invocations, computes CPI risk scores"
+                    .to_string(),
             supported_classes: vec!["C2".to_string(), "C3".to_string()],
         }
     }

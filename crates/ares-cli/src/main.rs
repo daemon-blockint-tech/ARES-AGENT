@@ -3,7 +3,11 @@ mod commands;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Clone)]
-#[command(name = "ares", version, about = "ARES-AGENT: Multi-model Solana audit platform")]
+#[command(
+    name = "ares",
+    version,
+    about = "ARES-AGENT: Multi-model Solana audit platform"
+)]
 struct Cli {
     /// RPC URL (defaults to mainnet)
     #[arg(long, env = "ARES_RPC_URL")]
@@ -99,7 +103,8 @@ async fn main() -> anyhow::Result<()> {
             severity,
             class,
         } => {
-            commands::list_findings(&cli, program_id.clone(), severity.clone(), class.clone()).await?;
+            commands::list_findings(&cli, program_id.clone(), severity.clone(), class.clone())
+                .await?;
         }
         Commands::Risk { program_id } => {
             commands::get_risk(&cli, program_id).await?;

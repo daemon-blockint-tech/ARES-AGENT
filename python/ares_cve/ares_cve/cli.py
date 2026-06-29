@@ -30,10 +30,16 @@ def main() -> None:
 @main.command()
 @click.argument("keyword")
 @click.option("--db-path", type=click.Path(), default=None, help="Path to CVEdb SQLite database")
-def search(keyword: str, db_path: str | None) -> None:
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON (for machine consumption)")
+def search(keyword: str, db_path: str | None, as_json: bool) -> None:
     """Search CVEs by keyword (e.g., 'solana', 'anchor', 'wormhole')."""
     with CVEEnricher(db_path=db_path) as enricher:
         results = enricher.search_by_keyword(keyword)
+
+    if as_json:
+        import json as _json
+        print(_json.dumps([r.to_dict() for r in results]))
+        return
 
     if not results:
         console.print(f"[yellow]No CVEs found for '{keyword}'[/yellow]")
@@ -81,12 +87,17 @@ def dep_scan(name: str, version: str, db_path: str | None) -> None:
 
 
 @main.command()
-@click.argument("findings_path", type=click.Path(exists=True))
+@click.argument("findings_path", type=click.Path())
 @click.option("--output", "-o", type=click.Path(), default=None, help="Output path for enriched findings")
 @click.option("--db-path", type=click.Path(), default=None, help="Path to CVEdb SQLite database")
-def enrich(findings_path: str, output: str | None, db_path: str | None) -> None:
-    """Enrich findings from a JSON file with CVE references."""
-    data = json.loads(Path(findings_path).read_text())
+@click.option("--json", "as_json", is_flag=True, help="Output JSON to stdout (for machine consumption)")
+def enrich(findings_path: str, output: str | None, db_path: str | None, as_json: bool) -> None:
+    """Enrich findings from a JSON file or stdin (-) with CVE references."""
+    if findings_path == "-":
+        import sys
+        data = json.loads(sys.stdin.read())
+    else:
+        data = json.loads(Path(findings_path).read_text())
     findings = data.get("findings", data) if isinstance(data, dict) else data
 
     with CVEEnricher(db_path=db_path) as enricher:
@@ -110,7 +121,9 @@ def enrich(findings_path: str, output: str | None, db_path: str | None) -> None:
         },
     }
 
-    if output:
+    if as_json:
+        print(json.dumps(output_data))
+    elif output:
         Path(output).write_text(json.dumps(output_data, indent=2))
         console.print(f"Results written to {output}")
     else:

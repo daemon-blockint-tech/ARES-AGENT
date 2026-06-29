@@ -52,8 +52,18 @@ impl RiskEngine {
         let economic = economic_exposure.unwrap_or(0.0);
 
         let total = RiskScore::compute_total(
-            c1, c2, c3, clone, economic,
-            &RiskWeights { w1: self.w1, w2: self.w2, w3: self.w3, w4: self.w4, w5: self.w5 },
+            c1,
+            c2,
+            c3,
+            clone,
+            economic,
+            &RiskWeights {
+                w1: self.w1,
+                w2: self.w2,
+                w3: self.w3,
+                w4: self.w4,
+                w5: self.w5,
+            },
         );
 
         RiskScore {
@@ -93,7 +103,11 @@ impl RiskEngine {
         // Normalize to 0.0-1.0 range (cap at 5 findings per class)
         let normalize = |score: f64| (score / 5.0).min(1.0);
 
-        (normalize(c1_score), normalize(c2_score), normalize(c3_score))
+        (
+            normalize(c1_score),
+            normalize(c2_score),
+            normalize(c3_score),
+        )
     }
 
     /// Batch compute risk scores for multiple programs
@@ -133,8 +147,22 @@ mod tests {
     fn test_c2_findings_weighted() {
         let engine = RiskEngine::default();
         let findings = vec![
-            Finding::new("test", "d", "t1", "d", Severity::Critical, VulnerabilityClass::C2),
-            Finding::new("test", "d", "t2", "d", Severity::High, VulnerabilityClass::C2),
+            Finding::new(
+                "test",
+                "d",
+                "t1",
+                "d",
+                Severity::Critical,
+                VulnerabilityClass::C2,
+            ),
+            Finding::new(
+                "test",
+                "d",
+                "t2",
+                "d",
+                Severity::High,
+                VulnerabilityClass::C2,
+            ),
         ];
         let score = engine.compute("test", &findings, None, None);
         // c2 = (1.0 + 0.75) / 5.0 = 0.35

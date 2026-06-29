@@ -1,4 +1,4 @@
-use ares_core::{Detector, DetectionContext, DetectorMetadata, Finding};
+use ares_core::{DetectionContext, Detector, DetectorMetadata, Finding};
 use async_trait::async_trait;
 
 /// Fuzz adapter detector — stub interface for FuzzDelSol integration.
@@ -38,7 +38,8 @@ impl Detector for FuzzAdapterDetector {
             version: "0.1.0".to_string(),
             description: "Binary-only coverage-guided fuzzer adapter for Solana SBF bytecode. \
                           Bug oracles: missing signer/owner/key, arbitrary CPI, integer bugs. \
-                          Currently a stub — requires FuzzDelSol installation.".to_string(),
+                          Currently a stub — requires FuzzDelSol installation."
+                .to_string(),
             supported_classes: vec!["C2".to_string(), "C3".to_string()],
         }
     }

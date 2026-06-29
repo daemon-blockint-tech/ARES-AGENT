@@ -50,9 +50,14 @@ impl EvidenceAnchorer {
             &self.program_id,
         );
 
-        // Instruction discriminator: anchor_finding (first 8 bytes of sha256("global:anchor_finding"))
+        // Anchor instruction discriminator: first 8 bytes of sha256("global:anchor_finding")
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(b"global:anchor_finding");
+        let discriminator: [u8; 8] = hasher.finalize()[..8].try_into().unwrap();
+
         let mut data = Vec::with_capacity(8 + 32 + 4 + 8);
-        data.extend_from_slice(&[0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0]); // discriminator stub
+        data.extend_from_slice(&discriminator);
         data.extend_from_slice(&evidence_root);
         data.extend_from_slice(&finding_count.to_le_bytes());
         data.extend_from_slice(&timestamp.to_le_bytes());
@@ -60,7 +65,10 @@ impl EvidenceAnchorer {
         let accounts = vec![
             solana_sdk::instruction::AccountMeta::new(pda, false),
             solana_sdk::instruction::AccountMeta::new(payer.pubkey(), true),
-            solana_sdk::instruction::AccountMeta::new_readonly(solana_sdk::system_program::id(), false),
+            solana_sdk::instruction::AccountMeta::new_readonly(
+                solana_sdk::system_program::id(),
+                false,
+            ),
         ];
 
         Ok(Instruction {
@@ -85,7 +93,9 @@ impl EvidenceAnchorer {
         if root_bytes.len() == 32 {
             evidence_root.copy_from_slice(&root_bytes);
         } else {
-            return Err(AresError::Anchoring("Merkle root must be 32 bytes".to_string()));
+            return Err(AresError::Anchoring(
+                "Merkle root must be 32 bytes".to_string(),
+            ));
         }
 
         let timestamp = bundle.created_at.timestamp();
@@ -117,10 +127,6 @@ impl EvidenceAnchorer {
 
     /// Get the PDA for a program's evidence registry
     pub fn evidence_pda(&self) -> Pubkey {
-        Pubkey::find_program_address(
-            &[b"evidence", self.program_id.as_ref()],
-            &self.program_id,
-        )
-        .0
+        Pubkey::find_program_address(&[b"evidence", self.program_id.as_ref()], &self.program_id).0
     }
 }

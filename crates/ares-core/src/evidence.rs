@@ -48,7 +48,10 @@ impl EvidenceBundle {
     pub fn new(batch_id: &str, evidence: Vec<Evidence>) -> AresResult<Self> {
         let leaves: Vec<Vec<u8>> = evidence
             .iter()
-            .map(|e| hex::decode(&e.merkle_leaf).map_err(|e| AresError::Evidence(format!("Invalid merkle leaf hex: {}", e))))
+            .map(|e| {
+                hex::decode(&e.merkle_leaf)
+                    .map_err(|e| AresError::Evidence(format!("Invalid merkle leaf hex: {}", e)))
+            })
             .collect::<Result<_, _>>()?;
         let tree = MerkleTree::new(&leaves);
         let root = hex::encode(tree.root());
@@ -104,10 +107,7 @@ impl MerkleTree {
             level_len = level_len.div_ceil(2);
         }
 
-        Self {
-            nodes,
-            leaf_count,
-        }
+        Self { nodes, leaf_count }
     }
 
     pub fn root(&self) -> &[u8] {
