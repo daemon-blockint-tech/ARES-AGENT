@@ -37,3 +37,4 @@ static_analysis_codeql_*/
 # OS
 .DS_Store
 Thumbs.db
+.venv-trailmark/
