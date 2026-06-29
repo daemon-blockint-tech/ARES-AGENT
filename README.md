@@ -200,7 +200,7 @@ Environment variables:
 
 ### Dependency Audit
 
-`cargo audit` is configured via `audit.toml`. All 5 vulnerabilities and 11 unmaintained-crate warnings are **transitive dependencies of the Solana SDK** (solana-sdk 2.2.1, solana-client 2.3.13) and cannot be upgraded without Solana releasing new versions:
+`cargo deny` is configured via `deny.toml`. All 5 vulnerabilities and 11 unmaintained-crate warnings are **transitive dependencies of the Solana SDK** (solana-sdk 2.2.1, solana-client 2.3.13) and cannot be upgraded without Solana releasing new versions:
 
 | Advisory | Crate | Type | Blocked By |
 |---|---|---|---|
@@ -214,7 +214,7 @@ Environment variables:
 | RUSTSEC-2021-0145 | atty 0.2.14 | Unsound | solana-cli / clap |
 | 8 more | various | Unmaintained | solana-sdk transitive |
 
-These are tracked in `audit.toml` and will be resolved when the Solana SDK upstream updates. The CI/CD pipeline runs `cargo audit` as an informational (non-blocking) step.
+These are tracked in `deny.toml` and will be resolved when the Solana SDK upstream updates. The CI/CD pipeline runs `cargo deny check` as a blocking step.
 
 ## CI/CD
 
@@ -224,7 +224,7 @@ GitHub Actions workflow runs on every push and PR:
 - `cargo clippy --all-targets -- -D warnings` — zero lint warnings
 - `cargo test --all` — full test suite
 - `cargo build --workspace` — build verification
-- `cargo audit` — dependency vulnerability scan (informational, non-blocking)
+- `cargo deny check` — dependency vulnerability + license scan
 
 See `.github/workflows/ci.yml`.
 
