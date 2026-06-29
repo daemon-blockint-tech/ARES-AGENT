@@ -1,0 +1,36 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Anchor
+.anchor/
+test-ledger/
+.programs/
+
+# Python
+python/.venv/
+python/**/__pycache__/
+python/**/*.egg-info/
+python/**/.ruff_cache/
+python/**/.mypy_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Datasets (large files)
+datasets/**/*.bin
+datasets/**/*.so
+
+# OS
+.DS_Store
+Thumbs.db

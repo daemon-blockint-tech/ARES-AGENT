@@ -1,0 +1,23 @@
+[package]
+name = "ares-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ares"
+path = "src/main.rs"
+
+[dependencies]
+ares-core = { path = "../ares-core" }
+ares-ingestion = { path = "../ares-ingestion" }
+ares-detectors = { path = "../ares-detectors" }
+ares-evidence = { path = "../ares-evidence" }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+bs58 = { workspace = true }
