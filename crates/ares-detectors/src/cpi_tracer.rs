@@ -3,8 +3,21 @@ use ares_core::{
 };
 use async_trait::async_trait;
 
+/// Maximum number of transaction traces to analyze (prevents DoS).
+const MAX_TRACES: usize = 1_000;
+
+/// Maximum number of CPI edges to collect before stopping (prevents
+/// unbounded graph traversal on deeply nested or circular CPI).
+const MAX_CPI_EDGES: usize = 10_000;
+
 /// CPI Graph Tracer: extracts and verifies CPI interaction graphs,
 /// detects missing validation patterns in cross-program invocations.
+///
+/// # Security
+///
+/// Transaction traces are bounded by MAX_TRACES and CPI edge collection
+/// is bounded by MAX_CPI_EDGES to prevent resource exhaustion from
+/// malformed or adversarial trace data.
 pub struct CpiTracerDetector;
 
 #[derive(Debug, Clone)]
@@ -27,9 +40,19 @@ impl CpiTracerDetector {
     fn build_cpi_graph(traces: &[ares_core::TransactionTrace]) -> Vec<CpiEdge> {
         let mut edges = Vec::new();
 
-        for trace in traces {
+        // Bound the number of traces to prevent DoS
+        let trace_limit = traces.len().min(MAX_TRACES);
+        for trace in &traces[..trace_limit] {
             for ix in &trace.instructions {
                 Self::extract_cpi_edges(ix, &ix.program_id, 0, &mut edges);
+                if edges.len() >= MAX_CPI_EDGES {
+                    tracing::warn!(
+                        "CPI edge count reached limit {}, stopping graph construction",
+                        MAX_CPI_EDGES
+                    );
+                    edges.truncate(MAX_CPI_EDGES);
+                    return edges;
+                }
             }
         }
 
@@ -46,7 +69,15 @@ impl CpiTracerDetector {
             return; // CPI depth limit
         }
 
+        if edges.len() >= MAX_CPI_EDGES {
+            return; // Edge count limit
+        }
+
         for inner in &ix.inner_instructions {
+            if edges.len() >= MAX_CPI_EDGES {
+                return;
+            }
+
             if inner.is_cpi {
                 let edge = CpiEdge {
                     from_program: parent_program.to_string(),
@@ -213,7 +244,20 @@ impl Detector for CpiTracerDetector {
             return Vec::new();
         }
 
+        // Bound trace input to prevent DoS
+        if ctx.transaction_traces.len() > MAX_TRACES {
+            tracing::warn!(
+                "Transaction trace count {} exceeds limit {}, truncating",
+                ctx.transaction_traces.len(),
+                MAX_TRACES
+            );
+        }
+
         let edges = Self::build_cpi_graph(&ctx.transaction_traces);
+        if edges.is_empty() {
+            return Vec::new();
+        }
+
         let mut findings = Self::analyze_edges(&edges);
 
         // Set program_id for findings that don't have it

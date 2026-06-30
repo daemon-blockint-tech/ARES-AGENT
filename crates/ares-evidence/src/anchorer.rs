@@ -6,8 +6,24 @@ use solana_sdk::{
 };
 use std::str::FromStr;
 
+/// Maximum number of findings allowed in a single anchor instruction.
+/// The on-chain Evidence Registry program should reject values above this.
+const MAX_ANCHOR_FINDING_COUNT: u32 = 65_535;
+
+/// Maximum allowed timestamp for anchor instructions (year 2100).
+/// Prevents overflow attacks via absurdly large timestamps.
+const MAX_ANCHOR_TIMESTAMP: i64 = 4_102_444_800;
+
 /// Anchors evidence bundles on-chain by submitting Merkle roots
 /// to the Evidence Registry program.
+///
+/// # Security
+///
+/// All inputs to `build_anchor_instruction` are validated before being
+/// serialized into the instruction data. This prevents:
+/// - Integer overflow in finding_count (DoS on the on-chain program)
+/// - Absurd timestamps that could corrupt on-chain state
+/// - Empty/invalid merkle roots
 pub struct EvidenceAnchorer {
     program_id: Pubkey,
     payer: Option<Keypair>,
@@ -32,13 +48,61 @@ impl EvidenceAnchorer {
         self
     }
 
-    /// Build the anchor_finding instruction for the Evidence Registry program
+    /// Validate inputs to the anchor instruction before building it.
+    /// Returns an error if any input is out of bounds.
+    fn validate_anchor_inputs(
+        evidence_root: [u8; 32],
+        finding_count: u32,
+        timestamp: i64,
+    ) -> AresResult<()> {
+        // Evidence root must not be all zeros (indicates unset/invalid merkle root)
+        if evidence_root == [0u8; 32] {
+            return Err(AresError::Anchoring(
+                "Evidence root must not be all zeros".to_string(),
+            ));
+        }
+
+        if finding_count == 0 {
+            return Err(AresError::Anchoring(
+                "Finding count must be greater than zero".to_string(),
+            ));
+        }
+
+        if finding_count > MAX_ANCHOR_FINDING_COUNT {
+            return Err(AresError::Anchoring(format!(
+                "Finding count {} exceeds maximum {}",
+                finding_count, MAX_ANCHOR_FINDING_COUNT
+            )));
+        }
+
+        if timestamp <= 0 {
+            return Err(AresError::Anchoring(
+                "Timestamp must be a positive Unix timestamp".to_string(),
+            ));
+        }
+
+        if timestamp > MAX_ANCHOR_TIMESTAMP {
+            return Err(AresError::Anchoring(format!(
+                "Timestamp {} exceeds maximum {} (year 2100)",
+                timestamp, MAX_ANCHOR_TIMESTAMP
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// Build the anchor_finding instruction for the Evidence Registry program.
+    ///
+    /// All inputs are validated before being serialized into the instruction data.
+    /// See `validate_anchor_inputs` for the specific checks.
     pub fn build_anchor_instruction(
         &self,
         evidence_root: [u8; 32],
         finding_count: u32,
         timestamp: i64,
     ) -> AresResult<Instruction> {
+        Self::validate_anchor_inputs(evidence_root, finding_count, timestamp)?;
+
         let payer = self
             .payer
             .as_ref()
@@ -128,5 +192,64 @@ impl EvidenceAnchorer {
     /// Get the PDA for a program's evidence registry
     pub fn evidence_pda(&self) -> Pubkey {
         Pubkey::find_program_address(&[b"evidence", self.program_id.as_ref()], &self.program_id).0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_anchorer() -> EvidenceAnchorer {
+        EvidenceAnchorer::new(
+            "Evidencereg111111111111111111111111111111111",
+            "https://api.mainnet-beta.solana.com",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn test_validate_rejects_zero_root() {
+        let result = EvidenceAnchorer::validate_anchor_inputs([0u8; 32], 1, 1700000000);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_rejects_zero_finding_count() {
+        let result = EvidenceAnchorer::validate_anchor_inputs([1u8; 32], 0, 1700000000);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_rejects_excessive_finding_count() {
+        let result =
+            EvidenceAnchorer::validate_anchor_inputs([1u8; 32], MAX_ANCHOR_FINDING_COUNT + 1, 1700000000);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_rejects_negative_timestamp() {
+        let result = EvidenceAnchorer::validate_anchor_inputs([1u8; 32], 1, -1);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_rejects_excessive_timestamp() {
+        let result =
+            EvidenceAnchorer::validate_anchor_inputs([1u8; 32], 1, MAX_ANCHOR_TIMESTAMP + 1);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_accepts_valid_inputs() {
+        let result = EvidenceAnchorer::validate_anchor_inputs([1u8; 32], 10, 1700000000);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_build_instruction_rejects_invalid_inputs() {
+        let anchorer = test_anchorer();
+        // No payer set — should fail
+        let result = anchorer.build_anchor_instruction([0u8; 32], 0, 0);
+        assert!(result.is_err());
     }
 }

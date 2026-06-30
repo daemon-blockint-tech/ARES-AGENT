@@ -8,10 +8,25 @@ use std::sync::Arc;
 
 #[tokio::test]
 async fn test_full_pipeline_static_rules() {
-    // Create a fake program with some bytecode
-    let bytecode = vec![
-        0x79, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x61, 0x66, 0x0c, 0x00,
-    ];
+    // Create a fake program with ELF-magic bytecode containing trigger patterns
+    let bytecode = {
+        let mut bc = vec![0x7f, b'E', b'L', b'F', // ELF magic
+                          0x02, 0x01, 0x01, 0x00, // 64-bit, little-endian, ELF v1
+                          0x00, 0x00, 0x00, 0x00, // padding
+                          0xf7, 0x00, 0x00, 0x00, // e_machine = EM_BPF (247)
+                          0x01, 0x00, 0x00, 0x00, // e_version
+                          0x00, 0x00, 0x00, 0x00, // e_entry
+                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // e_phoff
+                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // e_shoff
+        ];
+        // Append patterns that trigger the static rules detectors
+        bc.extend_from_slice(&[
+            0x79, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, // owner check pattern
+            0x61, 0x66, 0x0c, 0x00, // privileged op pattern
+            0x0f, 0x00, // arithmetic opcode
+        ]);
+        bc
+    };
     let program = ProgramInfo::new("Test11111111111111111111111111111111111", bytecode);
 
     let ctx = DetectionContext {
