@@ -1,3 +1,4 @@
+import { getCurrentRunTree } from "langsmith/traceable";
 import type {
   CVEEntry,
   CVESearchResponse,
@@ -40,6 +41,16 @@ export class AresClient {
     };
     if (this.apiKey) {
       headers["X-API-Key"] = this.apiKey;
+    }
+
+    // Propagate LangSmith distributed tracing context if we're inside a traceable run.
+    // This links the server-side spans to the client-side parent run.
+    // permitAbsentRunTree=true returns undefined instead of throwing when no run is active.
+    const runTree = getCurrentRunTree(true);
+    if (runTree) {
+      const traceHeaders = runTree.toHeaders();
+      headers["langsmith-trace"] = traceHeaders["langsmith-trace"];
+      headers["baggage"] = traceHeaders.baggage;
     }
 
     const controller = new AbortController();
