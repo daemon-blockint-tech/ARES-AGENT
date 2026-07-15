@@ -1,4 +1,4 @@
-import { Annotation } from "@langgraph/langgraph";
+import { Annotation } from "@langchain/langgraph";
 import type {
   Program,
   Finding,
