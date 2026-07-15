@@ -18,7 +18,7 @@
     "@langchain/core": "^1.0.0",
     "@langgraph/langgraph": "^1.0.0",
     "langchain": "^1.0.0",
-    "langsmith": "^0.3.0"
+    "langsmith": "^0.8.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

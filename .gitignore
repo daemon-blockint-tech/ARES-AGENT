@@ -38,3 +38,7 @@ static_analysis_codeql_*/
 .DS_Store
 Thumbs.db
 .venv-trailmark/
+
+# node modules
+node_modules/
+

@@ -122,3 +122,38 @@ export interface AgentReport {
   cves: CVEEntry[];
   summary: string;
 }
+
+export type Program = ProgramInfo;
+
+export type CveEntry = CVEEntry;
+
+export interface ProgramFamily {
+  id: string;
+  program_id: string;
+  family_name: string;
+  members: string[];
+}
+
+export interface WebhookConfig {
+  id: string;
+  url: string;
+  events: string[];
+  secret?: string;
+}
+
+export interface AresConfig {
+  baseUrl: string;
+  apiKey: string | null;
+  timeoutMs: number;
+}
+
+export interface DetectorResult {
+  detector: string;
+  findings: Finding[];
+  duration_ms: number;
+  error?: string;
+}
+
+export interface FindingWithRisk extends Finding {
+  risk_score: number;
+}
